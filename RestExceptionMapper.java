@@ -15,7 +15,7 @@ public class RestExceptionMapper implements ExceptionMapper<Throwable> {
 	@Override
 	public Response toResponse(Throwable exception) {
 		log.log(Level.WARNING, "toResponse() caught exception", exception);
-		return Response.status(getStatusCode(exception)).entity("Internal server error, check logs for more info.").build();
+		return Response.status(getStatusCode(exception)).entity(getResponseBody(exception)).build();
 	}
 
 	private int getStatusCode(Throwable exception) {
@@ -23,6 +23,13 @@ public class RestExceptionMapper implements ExceptionMapper<Throwable> {
 			return ((WebApplicationException) exception).getResponse().getStatus();
 		}
 		return Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
+	}
+
+	private String getResponseBody(Throwable exception) {
+		if (exception instanceof WebApplicationException) {
+			return ((WebApplicationException) exception).getResponse().getStatusInfo().toString();
+		}
+		return "Internal server error, check logs for more info.";
 	}
 
 }

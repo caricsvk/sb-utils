@@ -15,7 +15,7 @@ public class CommonSearchQuery {
 	@DefaultValue("id")
 	private String order = "id";
 	@QueryParam("orderType")
-	@DefaultValue("ASC")
+	@DefaultValue("DESC")
 	private OrderType orderType = OrderType.ASC;
 	@QueryParam("filter")
 	@DefaultValue("")
