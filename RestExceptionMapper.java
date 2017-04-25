@@ -19,23 +19,26 @@ public class RestExceptionMapper implements ExceptionMapper<Throwable> {
 
 	@Override
 	public Response toResponse(Throwable exception) {
-		log.log(Level.WARNING, "RestExceptionMapper caught exception at " + getUrl() + " : "
-				+ exception.getMessage(), exception);
-		return Response.status(getStatusCode(exception)).entity(getResponseBody(exception)).build();
+		WebApplicationException webApplicationException = getWebApplicationException(exception);
+		if (webApplicationException != null) {
+			Response response = webApplicationException.getResponse();
+			log.log(Level.INFO, "RestExceptionMapper caught exception at " + getUrl() + " : " + exception.getMessage());
+			// log only not expected exceptions
+			if (response.getStatus() < 400 || response.getStatus() > 406) {
+				log.log(Level.WARNING, exception.getMessage(), exception);
+			}
+			return Response.status(response.getStatus())
+					.entity(response.getStatusInfo().toString()).build();
+		} else {
+			log.log(Level.WARNING, "RestExceptionMapper caught exception at " + getUrl() + " : "
+					+ exception.getMessage(), exception);
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+					.entity("Internal server error, check logs for more info.").build();
+		}
 	}
 
-	private int getStatusCode(Throwable exception) {
-		if (exception instanceof WebApplicationException) {
-			return ((WebApplicationException) exception).getResponse().getStatus();
-		}
-		return Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
-	}
-
-	private String getResponseBody(Throwable exception) {
-		if (exception instanceof WebApplicationException) {
-			return ((WebApplicationException) exception).getResponse().getStatusInfo().toString();
-		}
-		return "Internal server error, check logs for more info.";
+	private WebApplicationException getWebApplicationException(Throwable exception) {
+		return exception instanceof WebApplicationException ? (WebApplicationException) exception : null;
 	}
 
 	private String getUrl() {
