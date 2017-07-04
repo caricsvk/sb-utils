@@ -19,8 +19,8 @@ public class RestExceptionMapper implements ExceptionMapper<Throwable> {
 
 	@Override
 	public Response toResponse(Throwable exception) {
-		WebApplicationException webApplicationException = getWebApplicationException(exception);
-		if (webApplicationException != null) {
+		if (exception instanceof WebApplicationException) {
+			WebApplicationException webApplicationException = (WebApplicationException) exception;
 			Response response = webApplicationException.getResponse();
 			log.log(Level.INFO, "RestExceptionMapper caught exception at " + getUrl() + " : " + exception.getMessage());
 			// log only not expected exceptions
@@ -35,10 +35,6 @@ public class RestExceptionMapper implements ExceptionMapper<Throwable> {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
 					.entity("Internal server error, check logs for more info.").build();
 		}
-	}
-
-	private WebApplicationException getWebApplicationException(Throwable exception) {
-		return exception instanceof WebApplicationException ? (WebApplicationException) exception : null;
 	}
 
 	private String getUrl() {
