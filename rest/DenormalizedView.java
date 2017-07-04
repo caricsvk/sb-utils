@@ -1,8 +1,8 @@
 package milo.utils.rest;
 
+import org.glassfish.hk2.api.AnnotationLiteral;
 import org.glassfish.jersey.message.filtering.EntityFiltering;
 
-import javax.enterprise.util.AnnotationLiteral;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
