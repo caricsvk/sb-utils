@@ -1,4 +1,4 @@
-package whitestein.shiftplanner.utils.rest.jaxbadapters;
+package milo.utils.rest.jaxbadapters;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;

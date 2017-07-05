@@ -1,4 +1,4 @@
-package whitestein.shiftplanner.utils.rest.jaxbadapters;
+package milo.utils.rest.jaxbadapters;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 import java.time.Duration;

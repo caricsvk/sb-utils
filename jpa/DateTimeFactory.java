@@ -1,4 +1,4 @@
-package whitestein.shiftplanner.utils.jpa;
+package milo.utils.jpa;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -7,25 +7,11 @@ import java.time.ZonedDateTime;
 
 public class DateTimeFactory {
 
-	public static LocalDateTime toLocalDateTime(Timestamp timestamp) {
-		if (timestamp == null) {
-			return null;
-		}
-		return LocalDateTime.ofEpochSecond(timestamp.getTime() / 1000, timestamp.getNanos(), ZoneOffset.UTC);
-	}
-
 	public static ZonedDateTime toZonedDateTime(Timestamp timestamp) {
 		if (timestamp == null) {
 			return null;
 		}
-		return ZonedDateTime.of(toLocalDateTime(timestamp), ZoneOffset.systemDefault());
-	}
-
-	public static Timestamp toTimestamp(LocalDateTime localDateTime) {
-		if (localDateTime == null) {
-			return null;
-		}
-		return toTimestamp(localDateTime.toEpochSecond(ZoneOffset.UTC), localDateTime.getNano());
+		return ZonedDateTime.of(timestamp.toLocalDateTime(), ZoneOffset.systemDefault());
 	}
 
 	public static Timestamp toTimestamp(ZonedDateTime zonedDateTime) {
