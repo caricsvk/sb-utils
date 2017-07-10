@@ -66,14 +66,14 @@ public abstract class EventStore {
 	private void emitEvents(List<Event> events) {
 		for (Event event : events)
 			try {
-				logEvent("emit", event.getEventName(), null);
+				EventStore.logEvent("emit", event.getEventName(), null);
 				messageBroker.send(event);
 			} catch (Exception e) {
 				LOG.log(Level.WARNING, e.getMessage(), e);
 			}
 	}
 
-	private void logEvent(String prefix, String eventName, String message) {
+	public static void logEvent(String prefix, String eventName, String message) {
 		if (LOG.isLoggable(Level.INFO)) {
 			List<StackTraceElement> stackTraceElements = Arrays.asList(Thread.currentThread().getStackTrace());
 			List<String> reducedStacks = Arrays.asList(new String[]{"sun", "jav", "com", "org", "net", "uti"});

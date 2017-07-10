@@ -3,7 +3,7 @@ package milo.utils.mail;
 public class EmailAddress {
 
 	private String email;
-	private String name = "";
+	private String name;
 
 	public EmailAddress() {
 	}

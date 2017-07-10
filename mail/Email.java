@@ -7,6 +7,7 @@ import java.util.Map;
 
 public class Email {
 
+	private String txnId;
 	private EmailAddress sender;
 	private EmailAddress replyTo;
 	private List<EmailAddress> recipients;
@@ -51,10 +52,6 @@ public class Email {
 
 	public void addRecipient(EmailAddress emailAddress) {
 		getRecipients().add(emailAddress);
-	}
-
-	public void addRecipient(String email, String name) {
-		getRecipients().add(new EmailAddress(email, name));
 	}
 
 	public List<EmailAddress> getCopyRecipientsCc() {
@@ -152,10 +149,19 @@ public class Email {
 		this.headers = headers;
 	}
 
+	public String getTxnId() {
+		return txnId;
+	}
+
+	public void setTxnId(String txnId) {
+		this.txnId = txnId;
+	}
+
 	@Override
 	public String toString() {
 		return "Email{" +
-				"sender=" + sender +
+				"txnId='" + txnId + '\'' +
+				", sender=" + sender +
 				", replyTo=" + replyTo +
 				", recipients=" + recipients +
 				", copyRecipientsCc=" + copyRecipientsCc +

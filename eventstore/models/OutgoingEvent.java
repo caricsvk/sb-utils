@@ -1,10 +1,10 @@
 package milo.utils.eventstore.models;
 
+import milo.utils.rest.jaxbadapters.LocalDateTimeToString;
+
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.time.LocalDateTime;
 
-/**
- * Created by caric on 2/15/15.
- */
 public abstract class OutgoingEvent implements Event {
 
 	protected Class<?> aggregateType;
@@ -26,6 +26,7 @@ public abstract class OutgoingEvent implements Event {
 	}
 
 	@Override
+	@XmlJavaTypeAdapter(LocalDateTimeToString.class)
 	public LocalDateTime getCreated() {
 		if (created == null) {
 			created = LocalDateTime.now();
