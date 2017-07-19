@@ -116,9 +116,12 @@ public abstract class MailgunEmailService implements EmailService {
 		for (String key : formData.keySet()) {
 			betterMap.put(key, Arrays.asList(formData.get(key)));
 		}
-		LOGGER.info("got mailgun event: " + betterMap);
+		LOGGER.info("got mailgun event: " + betterMap + " : " + formData.keySet());
 		EmailEvent emailEvent = new EmailEvent();
 		emailEvent.setName(getValue("event", formData));
+		if (formData.keySet().size() == 0 || emailEvent.getName() == null) {
+			return null;
+		}
 		String timestamp = getValue("timestamp", formData);
 		if (timestamp != null) {
 			emailEvent.setCreated(new Timestamp(Long.valueOf(timestamp) * 1000L));
@@ -128,7 +131,7 @@ public abstract class MailgunEmailService implements EmailService {
 			JsonNode jsonNode = OBJECT_MAPPER.readTree(getValue(INTERNAL_ID_KEY, formData));
 			emailEvent.setEmailId(jsonNode.get(INTERNAL_ID_KEY).textValue());
 		} catch (Exception ex) {
-			LOGGER.log(Level.WARNING, "parsing txnId failed" + ex.getMessage(), ex);
+			LOGGER.log(Level.WARNING, "parsing txnId failed" + ex.getMessage());
 		}
 		return emailEvent;
 	}
