@@ -35,6 +35,9 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+import javax.persistence.metamodel.IdentifiableType;
+import javax.persistence.metamodel.Metamodel;
+import javax.persistence.metamodel.SingularAttribute;
 import javax.transaction.Transactional;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -95,7 +98,7 @@ public abstract class EntityService<E, ID> {
 		CriteriaQuery<E> cq = cb.createQuery(entityClass);
 		Root<E> root = cq.from(entityClass);
 
-		cq.select(root);
+		cq.select(root).distinct(true); // vs DISTINCT_ROOT_ENTITY?
 
 		String[] orderPathArray = tb.getOrder().split("\\.");
 		Path<Object> orderPath = getPath(root, orderPathArray);
@@ -139,7 +142,7 @@ public abstract class EntityService<E, ID> {
 		CriteriaBuilder cb = getEntityManager().getCriteriaBuilder();
 		CriteriaQuery cq = cb.createQuery();
 		Root<E> root = cq.from(entityClass);
-		cq.select(cb.count(root));
+		cq.select(cb.countDistinct(root));
 		Query query = tb.createQuery(getEntityManager(), cb, cq, root);
 		if (query == null) {
 			query = createCommonQuery(cb, cq, root, tb);
@@ -165,6 +168,12 @@ public abstract class EntityService<E, ID> {
 		} catch (NoResultException ex) {
 			return 0;
 		}
+	}
+
+	private SingularAttribute<? super E, ?> getIdAttribute() {
+		Metamodel m = getEntityManager().getMetamodel();
+		IdentifiableType<E> of = (IdentifiableType<E>) m.managedType(entityClass);
+		return of.getId(of.getIdType().getJavaType());
 	}
 
 	private Query createCommonQuery(CriteriaBuilder cb, CriteriaQuery cq, Root root, TableSearchQuery tb) {
