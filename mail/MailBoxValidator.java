@@ -59,13 +59,12 @@ public class MailBoxValidator {
 			, "seznam.cz", "azet.sk", "zoznam.sk", "stonline.sk", "atlas.sk", "atlas.cz"};
 	private static final String[] prefixes = new String[]{"info", "kontakt", "contact", "infinity", "peter", "richard"};
 
-	public static void main( String args[] ) {
-//	private static void test() {
+//	public static void main( String args[] ) {
+	private static void test() {
 		Dummy[] testData = {
 			new Dummy("", "nieuwsbrief@sokol.nl"),
 			new Dummy("", "bla@bla.bla"),
-			new Dummy("a", "caricsvk@gmail.com"),
-			new Dummy("a", "richard.casar@hotmail.com")
+			new Dummy("a", "caricsvk@gmail.com")
 		};
 
 		int matches = 0;
