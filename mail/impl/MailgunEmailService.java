@@ -8,6 +8,7 @@ import milo.utils.mail.EmailAddress;
 import milo.utils.mail.EmailAttachment;
 import milo.utils.mail.EmailEvent;
 import milo.utils.mail.EmailService;
+import milo.utils.mail.MailBoxValidator;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
@@ -134,6 +135,20 @@ public abstract class MailgunEmailService implements EmailService {
 			LOGGER.log(Level.WARNING, "parsing txnId failed" + ex.getMessage());
 		}
 		return emailEvent;
+	}
+
+	@Override
+	public CheckResult lightCheck(String recipientEmail) {
+		CheckResult checkResult = new CheckResult();
+		Boolean verify = MailBoxValidator.verify(recipientEmail);
+		checkResult.setOkay(verify);
+		return checkResult;
+	}
+
+	@Override
+	public CheckResult expensiveCheck(String recipientEmail) {
+		CheckResult checkResult = new CheckResult();
+		return checkResult;
 	}
 
 	private String getValue(String key, Map<String, String[]> formData) {
