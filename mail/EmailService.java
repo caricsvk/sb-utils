@@ -14,6 +14,14 @@ public interface EmailService {
 		Boolean okay;
 		String metadata;
 
+		public CheckResult() {
+		}
+
+		public CheckResult(Boolean okay, String metadata) {
+			this.okay = okay;
+			this.metadata = metadata;
+		}
+
 		public Boolean getOkay() {
 			return okay;
 		}

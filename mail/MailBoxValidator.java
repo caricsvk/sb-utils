@@ -36,15 +36,25 @@
  */
 package milo.utils.mail;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-
-import javax.naming.*;
-import javax.naming.directory.*;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.naming.CommunicationException;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.InitialDirContext;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.Random;
+import java.util.logging.Logger;
 
 // Basically taken and modified from rgagnon:
 // See: http://www.rgagnon.com/javadetails/java-0452.html
@@ -53,7 +63,16 @@ import org.slf4j.LoggerFactory;
 //    There is no restriction to use individual How-To in a development (compiled/source) but a mention is appreciated. 
 public class MailBoxValidator {
 
-	private static final Logger logger = LoggerFactory.getLogger(MailBoxValidator.class);
+	private static String lastLog = "";
+	private static final Logger realLogger = Logger.getLogger(MailBoxValidator.class.getName());
+	private static final CustomLogger logger = log -> {
+		lastLog = log;
+		realLogger.info(log);
+	};
+
+	private static String lastHeardLine = "";
+	private static String[] falseWordsIn55X = {"unknown", "not found", "address rejected", "does not exist", "no such user",
+			"bounce", "mailbox", "validrcptto", "yahoo.com account"};
 
 	private static final String[] domains = new String[]{"relowl.com", "gmail.com", "yahoo.com", "hotmail.com"
 			, "seznam.cz", "azet.sk", "zoznam.sk", "stonline.sk", "atlas.sk", "atlas.cz"};
@@ -62,9 +81,7 @@ public class MailBoxValidator {
 //	public static void main( String args[] ) {
 	private static void test() {
 		Dummy[] testData = {
-			new Dummy("", "nieuwsbrief@sokol.nl"),
-			new Dummy("", "bla@bla.bla"),
-			new Dummy("a", "caricsvk@gmail.com")
+			new Dummy("", "test@gmail.com")
 		};
 
 		int matches = 0;
@@ -100,6 +117,7 @@ public class MailBoxValidator {
 		// 11 / 30 / 50, true mis+matches 4 + 18, false mis+matches 5 + 12
 		// 12 / 32 / 50, true mis+matches 4 + 20, false mis+matches 2 + 12
 		// 25 / 29 / 60, true mis+matches 2 + 19, false mis+matches 4 + 10
+		// 49 / 44 / 100, true mis+matches 7 + 0, false mis+matches 0 + 44 (50% bounced caught)
 	}
 
 	public static boolean isEmailSyntaxValid(String email) {
@@ -181,23 +199,30 @@ public class MailBoxValidator {
 			rdr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			wtr = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-			int response = hear(rdr);
-			if (response != 220) throw new Exception("Invalid header " + response);
+			int responseCode = hear(rdr);
+			if (responseCode != 220) {
+				throw new Exception("Invalid header " + responseCode + ", " + lastHeardLine);
+			}
 
 			String fromEmail = getRandomFromEmail(address);
 			String fromDomain = fromEmail.substring(fromEmail.indexOf('@') + 1);
 			say(wtr, "EHLO " + fromDomain);
 
-			response = hear(rdr);
-			if (response != 250) throw new Exception("Not ESMTP " + response);
+			responseCode = hear(rdr);
+			if (responseCode != 250) {
+				throw new Exception("Not ESMTP " + responseCode + ", " + lastHeardLine);
+			}
 
 			// validate the sender address
 			say(wtr, "MAIL FROM: <" + fromEmail + ">");
-			response = hear(rdr);
-			if (response != 250) throw new Exception("Sender rejected " + response);
+			responseCode = hear(rdr);
+			if (responseCode != 250) {
+				throw new Exception("Sender rejected " + responseCode + ", " + lastHeardLine);
+			}
 
 			say(wtr, "RCPT TO: <" + address + ">");
-			response = hear(rdr);
+			responseCode = hear(rdr);
+			String response = lastHeardLine;
 
 			// be polite
 			say(wtr, "RSET");
@@ -205,10 +230,19 @@ public class MailBoxValidator {
 			say(wtr, "QUIT");
 			hear(rdr);
 
-			if (response == 250) {
+			if (responseCode == 250) {
+				logger.info(address + " [mail validation] OK = " + response);
 				return true;
+			} else if (responseCode >= 550) {
+				String fullResponseLower = response.toLowerCase();
+				for (String falseWord : falseWordsIn55X) {
+					if (fullResponseLower.contains(falseWord)) {
+						logger.info(address + " [mail validation] 550+ returning false, " + response);
+						return false;
+					}
+				}
 			}
-			logger.info(address + " [mail validation] got response SMTP " + response);
+			logger.info(address + " [mail validation] null, " + response);
 		} catch (SocketTimeoutException ex) {
 			logger.info(address + " mail validation] socket timeout. " + ex.getMessage());
 			return false;
@@ -237,6 +271,7 @@ public class MailBoxValidator {
 		int res = 0;
 
 		while ((line = in.readLine()) != null) {
+			lastHeardLine = line;
 			String pfx = line.substring(0, 3);
 			try {
 				res = Integer.parseInt(pfx);
@@ -264,6 +299,10 @@ public class MailBoxValidator {
 		return prefixes[new Random().nextInt(prefixes.length)] + "@" + domain;
 	}
 
+	public static String getLastLog() {
+		return lastLog;
+	}
+
 	static class Dummy {
 		public boolean isValid;
 		public String email;
@@ -272,6 +311,10 @@ public class MailBoxValidator {
 			this.isValid = isValid != null & !isValid.isEmpty();
 			this.email = email;
 		}
+	}
+
+	interface CustomLogger {
+		void info(String log);
 	}
 
 }

@@ -142,13 +142,13 @@ public abstract class MailgunEmailService implements EmailService {
 		CheckResult checkResult = new CheckResult();
 		Boolean verify = MailBoxValidator.verify(recipientEmail);
 		checkResult.setOkay(verify);
+		checkResult.setMetadata(MailBoxValidator.getLastLog());
 		return checkResult;
 	}
 
 	@Override
 	public CheckResult expensiveCheck(String recipientEmail) {
-		CheckResult checkResult = new CheckResult();
-		return checkResult;
+		throw new RuntimeException("not implemented yet");
 	}
 
 	private String getValue(String key, Map<String, String[]> formData) {
