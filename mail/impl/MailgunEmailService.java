@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -41,13 +42,54 @@ public abstract class MailgunEmailService implements EmailService {
 	protected abstract String getHost();
 	protected abstract String getApiKey();
 
+	private Client client;
+
+	private Client getClient() {
+		if (client == null) {
+			client = ClientBuilder.newClient();
+			client.register(MultiPartFeature.class);
+			client.register(HttpAuthenticationFeature.basic("api", getApiKey()));
+		}
+		return client;
+	}
+
+	public List<Bounce> fetchBounces() {
+		WebTarget target = getClient().target("https://api.mailgun.net/v3");
+		Response response = target.path("/{domain}/bounces").resolveTemplate("domain", getHost()).request().get();
+		String responseMessage = response.readEntity(String.class);
+		List<Bounce> result = new ArrayList<>();
+		if (response.getStatus() >= 200 && response.getStatus() < 300) {
+			try {
+				JsonNode responseMessageObject = OBJECT_MAPPER.readTree(responseMessage);
+				JsonNode items = responseMessageObject.get("items");
+				for (int i = 0; i < items.size(); i ++) {
+					JsonNode item = items.get(i);
+					result.add(new Bounce(item.get("address").textValue(), item.get("error").textValue()));
+				}
+
+			} catch (Exception ex) {
+				LOGGER.log(Level.WARNING, "caught Exception by parsing bounces response: " + ex.getMessage(), ex);
+			}
+		} else {
+			LOGGER.log(Level.WARNING, "error fetching bounces " + responseMessage);
+		}
+		return result;
+	}
+
+	public int deleteBounce(Bounce bounce) {
+		WebTarget target = getClient().target("https://api.mailgun.net/v3");
+		Response response = target.path("/{domain}/bounces/{address}")
+				.resolveTemplate("domain", getHost())
+				.resolveTemplate("address", bounce.getAddress())
+				.request().delete();
+		String responseMessage = response.readEntity(String.class);
+		LOGGER.info(responseMessage);
+		return response.getStatus();
+	}
+
 	@Override
 	public String send(Email email) throws IOException {
-		Client client = ClientBuilder.newClient();
-		client.register(MultiPartFeature.class);
-		client.register(HttpAuthenticationFeature.basic("api", getApiKey()));
-
-		WebTarget target = client.target("https://api.mailgun.net/v3");
+		WebTarget target = getClient().target("https://api.mailgun.net/v3");
 		FormDataMultiPart form = new FormDataMultiPart();
 		String name = email.getSender().getName();
 		form.field("subject", email.getSubject());
@@ -158,6 +200,24 @@ public abstract class MailgunEmailService implements EmailService {
 
 	private String makeRecipient(EmailAddress emailAddress) {
 		return emailAddress.getName() + "<" + emailAddress.getEmail() + ">";
+	}
+
+	public static class Bounce {
+		private String address;
+		private String reason;
+
+		public Bounce(String address, String reason) {
+			this.address = address;
+			this.reason = reason;
+		}
+
+		public String getAddress() {
+			return address;
+		}
+
+		public String getReason() {
+			return reason;
+		}
 	}
 
 }
