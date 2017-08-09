@@ -73,7 +73,7 @@ public class MailBoxValidator {
 	private static String lastHeardLine = "";
 	private static String[] falseWordsIn55X = {"unknown", "not found", "does not exist", "no such user",
 			"bounce", "mailbox", "validrcptto", "yahoo.com account"};
-	private static String[] trueWordsIn45X = {"greylisted"};
+	private static String[] trueWordsIn450Plus = {"greylisted", "spf"}; // spf = sender not authorized, greylisted = try later
 
 	private static final String[] domains = new String[]{"relowl.com", "gmail.com", "yahoo.com", "hotmail.com"
 			, "seznam.cz", "azet.sk", "zoznam.sk", "stonline.sk", "atlas.sk", "atlas.cz"};
@@ -234,23 +234,28 @@ public class MailBoxValidator {
 			if (responseCode == 250) {
 				logger.info(address + " [mail validation] OK = " + response);
 				return true;
-			} else if (responseCode >= 450 && responseCode < 500) {
-				String fullResponseLower = response.toLowerCase();
-				for (String falseWord : trueWordsIn45X) {
-					if (fullResponseLower.contains(falseWord)) {
-						logger.info(address + " [mail validation] 450+ grey list returning true, " + response);
-						return true;
-					}
-				}
-			} else if (responseCode >= 550) {
+			}
+
+			if (responseCode >= 550) {
 				String fullResponseLower = response.toLowerCase();
 				for (String falseWord : falseWordsIn55X) {
 					if (fullResponseLower.contains(falseWord)) {
-						logger.info(address + " [mail validation] 550+ returning false, " + response);
+						logger.info(address + " [mail validation] 550+ false word, " + response);
 						return false;
 					}
 				}
 			}
+
+			if (responseCode >= 450) {
+				String fullResponseLower = response.toLowerCase();
+				for (String trueWord : trueWordsIn450Plus) {
+					if (fullResponseLower.contains(trueWord)) {
+						logger.info(address + " [mail validation] 450+ true word, " + response);
+						return true;
+					}
+				}
+			}
+
 			logger.info(address + " [mail validation] null, " + response);
 		} catch (SocketTimeoutException ex) {
 			logger.info(address + " mail validation] socket timeout. " + ex.getMessage());
