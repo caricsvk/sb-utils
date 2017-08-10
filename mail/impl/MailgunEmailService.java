@@ -199,7 +199,7 @@ public abstract class MailgunEmailService implements EmailService {
 	}
 
 	private String makeRecipient(EmailAddress emailAddress) {
-		return emailAddress.getName() + "<" + emailAddress.getEmail() + ">";
+		return (emailAddress.getName() == null ? "" : emailAddress.getName()) + "<" + emailAddress.getEmail() + ">";
 	}
 
 	public static class Bounce {
