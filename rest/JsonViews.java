@@ -11,4 +11,8 @@ public class JsonViews {
 	static public class All {
 	}
 
+	static public class Aggregate {
+
+	}
+
 }

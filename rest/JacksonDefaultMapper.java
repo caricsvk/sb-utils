@@ -1,7 +1,9 @@
 package milo.utils.rest;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import javax.inject.Named;
 import javax.ws.rs.ext.ContextResolver;
@@ -15,6 +17,7 @@ public class JacksonDefaultMapper implements ContextResolver<ObjectMapper> {
 
 	{
 		provider.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		provider.configure(MapperFeature.DEFAULT_VIEW_INCLUSION, true);
 		provider.findAndRegisterModules();
 	}
 
