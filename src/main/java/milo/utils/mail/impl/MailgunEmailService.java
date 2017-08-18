@@ -5,24 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import milo.utils.mail.Email;
 import milo.utils.mail.EmailAddress;
-import milo.utils.mail.EmailAttachment;
 import milo.utils.mail.EmailEvent;
 import milo.utils.mail.EmailService;
 import milo.utils.mail.MailBoxValidator;
-import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
-import org.glassfish.jersey.media.multipart.FormDataMultiPart;
-import org.glassfish.jersey.media.multipart.MultiPartFeature;
-import org.glassfish.jersey.media.multipart.file.StreamDataBodyPart;
 
 import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,18 +33,16 @@ public abstract class MailgunEmailService implements EmailService {
 	private static final String INTERNAL_ID_KEY = "internal-message-id";
 
 	protected abstract String getHost();
-	protected abstract String getApiKey();
 
-	private Client client;
-
-	private Client getClient() {
-		if (client == null) {
-			client = ClientBuilder.newClient();
-			client.register(MultiPartFeature.class);
-			client.register(HttpAuthenticationFeature.basic("api", getApiKey()));
-		}
-		return client;
-	}
+	protected abstract Client getClient();
+//	{
+//		if (client == null) {
+//			client = ClientBuilder.newClient();
+//			client.register(MultiPartFeature.class);
+//			client.register(HttpAuthenticationFeature.basic("api", getApiKey()));
+//		}
+//		return client;
+//	}
 
 	public List<Bounce> fetchBounces() {
 		WebTarget target = getClient().target("https://api.mailgun.net/v3");
@@ -90,51 +81,52 @@ public abstract class MailgunEmailService implements EmailService {
 	@Override
 	public String send(Email email) throws IOException {
 		WebTarget target = getClient().target("https://api.mailgun.net/v3");
-		FormDataMultiPart form = new FormDataMultiPart();
+		Form form = new Form();
 		String name = email.getSender().getName();
-		form.field("subject", email.getSubject());
-		form.field("from", (name == null ? "" : name) + "<" + email.getSender().getEmail() + ">");
+		form.param("subject", email.getSubject());
+		form.param("from", (name == null ? "" : name) + "<" + email.getSender().getEmail() + ">");
 		for (EmailAddress emailAddress : email.getRecipients()) {
-			form.field("to",  makeRecipient(emailAddress));
+			form.param("to",  makeRecipient(emailAddress));
 		}
 		for (EmailAddress emailAddress : email.getCopyRecipientsCc()) {
-			form.field("cc",  makeRecipient(emailAddress));
+			form.param("cc",  makeRecipient(emailAddress));
 		}
 		for (EmailAddress emailAddress : email.getHiddenRecipientsBcc()) {
-			form.field("bcc",  makeRecipient(emailAddress));
+			form.param("bcc",  makeRecipient(emailAddress));
 		}
 		if (email.getReplyTo() != null) {
-			form.field("h:Reply-To", makeRecipient(email.getReplyTo()));
+			form.param("h:Reply-To", makeRecipient(email.getReplyTo()));
 		}
 		if (email.getHtml() != null && !email.getHtml().isEmpty()) {
-			form.field("html", email.getHtml());
+			form.param("html", email.getHtml());
 		}
 		if (email.getText() != null && !email.getText().isEmpty()) {
-			form.field("text", email.getText());
+			form.param("text", email.getText());
 		}
 		for (Map.Entry<String, String> header : email.getHeaders().entrySet()) {
-			form.field("h:" + header.getKey(), header.getValue());
+			form.param("h:" + header.getKey(), header.getValue());
 		}
-		for (EmailAttachment emailAttachment : email.getAttachments()) {
-			try {
-				InputStream attachmentInputStream = new URL(emailAttachment.getUrl()).openStream();
-				form.bodyPart(new StreamDataBodyPart("attachment", attachmentInputStream, emailAttachment.getName(),
-						MediaType.APPLICATION_OCTET_STREAM_TYPE));
-			} catch (IOException ex) {
-				ex.printStackTrace();
-			}
-		}
+		// TODO
+//		for (EmailAttachment emailAttachment : email.getAttachments()) {
+//			try {
+//				InputStream attachmentInputStream = new URL(emailAttachment.getUrl()).openStream();
+//				form.bodyPart(new StreamDataBodyPart("attachment", attachmentInputStream, emailAttachment.getName(),
+//						MediaType.APPLICATION_OCTET_STREAM_TYPE));
+//			} catch (IOException ex) {
+//				ex.printStackTrace();
+//			}
+//		}
 		if (email.getTxnId() == null || email.getTxnId().isEmpty()) {
 			email.setTxnId(UUID.randomUUID().toString());
 		}
 		ObjectNode objectNode = OBJECT_MAPPER.createObjectNode();
 		objectNode.put(INTERNAL_ID_KEY, email.getTxnId());
-		form.field("v:" + INTERNAL_ID_KEY, OBJECT_MAPPER.writeValueAsString(objectNode));
+		form.param("v:" + INTERNAL_ID_KEY, OBJECT_MAPPER.writeValueAsString(objectNode));
 
 		Response response = target.path("/{domain}/messages")
 				.resolveTemplate("domain", getHost())
 				.request(MediaType.MULTIPART_FORM_DATA_TYPE)
-				.post(Entity.entity(form, form.getMediaType())); // MediaType.APPLICATION_FORM_URLENCODED
+				.post(Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED)); // form.getMediaType()
 
 		LOGGER.info(response.toString());
 		String responseMessage = response.readEntity(String.class);

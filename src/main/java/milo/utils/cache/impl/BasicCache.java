@@ -5,7 +5,6 @@ import milo.utils.cache.CollectionCreator;
 import milo.utils.cache.Creator;
 import milo.utils.cache.MapCreator;
 import milo.utils.cache.ObjectCreator;
-import org.springframework.context.annotation.Bean;
 
 import java.util.Collection;
 import java.util.Map;
@@ -38,7 +37,7 @@ public class BasicCache<T> implements Cache<T> {
 
 	private CacheHolder getCacheHolder(String key, int seconds, Creator creator) {
 		CacheHolder cacheHolder = cacheHolders.get(key);
-		if (cacheHolder == null || System.currentTimeMillis() - cacheHolder.getCreated() > 1000*seconds) {
+		if (cacheHolder == null || System.currentTimeMillis() - cacheHolder.getCreated() > 1000 * seconds) {
 			LOG.info("###### ===== BasicCache.creatingCache for " + key);
 			cacheHolder = new CacheHolder(creator.create());
 			cacheHolders.put(key, cacheHolder);
