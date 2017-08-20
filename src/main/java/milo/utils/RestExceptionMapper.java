@@ -27,8 +27,10 @@ public class RestExceptionMapper implements ExceptionMapper<Throwable> {
 			if (response.getStatus() < 400 || response.getStatus() > 406) {
 				log.log(Level.WARNING, exception.getMessage(), exception);
 			}
-			return Response.status(response.getStatus())
-					.entity(response.getStatusInfo().toString()).build();
+			// if there is entity use it, otherwise build entity from status info
+			return webApplicationException.getResponse().getEntity() == null ?
+					Response.status(response.getStatus()).entity(response.getStatusInfo().toString()).build() :
+					webApplicationException.getResponse();
 		} else {
 			log.log(Level.WARNING, "RestExceptionMapper caught exception at " + getUrl() + " : "
 					+ exception.getMessage(), exception);
