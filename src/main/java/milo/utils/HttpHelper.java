@@ -16,6 +16,7 @@ import java.net.InetSocketAddress;
 import java.net.ProtocolException;
 import java.net.Proxy;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.util.Random;
 import java.util.regex.Matcher;
@@ -60,7 +61,7 @@ public class HttpHelper {
 		return download(buildUrlConnection(url));
 	}
 
-	public static String download(HttpURLConnection urlCon) throws IOException, MetaRefreshOccurred {
+	public static String download(URLConnection urlCon) throws IOException, MetaRefreshOccurred {
 
 		urlCon.connect();
 
@@ -84,7 +85,9 @@ public class HttpHelper {
 			in.close();
 		}
 
-		urlCon.disconnect();
+		if (urlCon instanceof HttpURLConnection) {
+			((HttpURLConnection) urlCon).disconnect();
+		}
 		String result = String.valueOf(tmp);
 		String metaRefreshUrl = findMetaRefreshUrl(result);
 		if (metaRefreshUrl != null && !metaRefreshUrl.isEmpty()) {
@@ -109,19 +112,20 @@ public class HttpHelper {
 		return null;
 	}
 
-	public static HttpURLConnection buildUrlConnection(String urlString, String ipAddress, int port) throws IOException {
+	public static URLConnection buildUrlConnection(String urlString, String ipAddress, int port) throws IOException {
 		CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
 		URL url = new URL(fixUrl(urlString).replaceAll("\\P{Print}", ""));
 		Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(ipAddress, port));
-		HttpURLConnection uc = (HttpURLConnection) url.openConnection(proxy);
+		URLConnection uc = url.openConnection(proxy);
 		setDefaultParams(uc);
 		return uc;
 	}
 
-	public static HttpURLConnection buildUrlConnection(String urlString) throws IOException {
+	public static URLConnection buildUrlConnection(String urlString) throws IOException {
 		CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
-		URL url = new URL(fixUrl(urlString).replaceAll("\\P{Print}", ""));
-		HttpURLConnection uc = (HttpURLConnection) url.openConnection();
+		String fixedUrlString = fixUrl(urlString).replaceAll("\\P{Print}", "");
+		URL url = new URL(fixedUrlString);
+		URLConnection uc = url.openConnection();
 		setDefaultParams(uc);
 		return uc;
 	}
@@ -150,17 +154,18 @@ public class HttpHelper {
 		return url.replaceFirst("^[a-zA-Z]+://([^\\.]+\\.)*([^/\\.]+)\\.([a-zA-Z]+).*$", "$2.$3");
 	}
 
-	private static void setDefaultParams(HttpURLConnection uc) throws ProtocolException {
+	private static void setDefaultParams(URLConnection uc) throws ProtocolException {
 		uc.setConnectTimeout(10000);
 		uc.setReadTimeout(50000);
 		uc.setAllowUserInteraction(false);
-		uc.setInstanceFollowRedirects(true);
-		uc.setRequestMethod("GET");
-		uc.addRequestProperty("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-		uc.addRequestProperty("accept-encoding", "gzip,deflate,sdch");
+		if (uc instanceof HttpURLConnection) {
+			((HttpURLConnection) uc).setInstanceFollowRedirects(true);
+			((HttpURLConnection) uc).setRequestMethod("GET");
+		}
+		uc.addRequestProperty("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+		uc.addRequestProperty("accept-encoding", "gzip,deflate,sdch,br");
 		uc.addRequestProperty("accept-language", "en-US,en;q=0.8,cs;q=0.4,sk;q=0.2");
 		uc.addRequestProperty("User-Agent", getRandomAgent());
-		//uc.setRequestProperty("Accept-Charset", "UTF-8");
 	}
 
 	public static String getRandomAgent() {

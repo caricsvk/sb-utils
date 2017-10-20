@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +67,7 @@ public class ImageHelper {
 			return null;
 		}
 		Image image = new Image();
-		HttpURLConnection urlConnection = null;
+		URLConnection urlConnection = null;
 		try {
 
 			urlConnection = HttpHelper.buildUrlConnection(url);
@@ -110,8 +111,8 @@ public class ImageHelper {
 			LOG.log(Level.SEVERE, ex.getMessage(), ex);
 			return null;
 		} finally {
-			if (urlConnection != null) {
-				urlConnection.disconnect();
+			if (urlConnection != null && urlConnection instanceof HttpURLConnection) {
+				((HttpURLConnection) urlConnection).disconnect();
 			}
 		}
 		return image;

@@ -80,4 +80,17 @@ public class Image implements ImageInfo {
 	public void setBufferedImage(BufferedImage bufferedImage) {
 		this.bufferedImage = bufferedImage;
 	}
+
+	@Override
+	public String toString() {
+		return "Image{" +
+				"name='" + name + '\'' +
+				", height=" + height +
+				", width=" + width +
+				", url='" + url + '\'' +
+				", content=" + (content == null ? null : content.length) +
+				", contentType='" + contentType + '\'' +
+				", bufferedImage=" + bufferedImage +
+				'}';
+	}
 }
