@@ -131,6 +131,12 @@ public class HttpHelper {
 	}
 
 	public static String fixUrl(String url) {
+		if (url.startsWith("//")) {
+			url = "http:" + url;
+		}
+		if (!url.startsWith("http")) {
+			url = "http://" + url;
+		}
 		// fix fucked up urls e.g. 'http://bla.bl/../xyz/' issue
 		return url.replaceFirst("^([a-z]+://[^/]+/)\\.\\./(.*)$", "$1$2");
 	}
