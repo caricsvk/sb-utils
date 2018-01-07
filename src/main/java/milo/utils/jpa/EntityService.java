@@ -39,14 +39,13 @@ import javax.persistence.metamodel.IdentifiableType;
 import javax.persistence.metamodel.Metamodel;
 import javax.persistence.metamodel.SingularAttribute;
 import javax.transaction.Transactional;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class EntityService<E, ID> {
 
@@ -61,22 +60,22 @@ public abstract class EntityService<E, ID> {
 	}
 
 	@Transactional
-	public E persist(@Valid E entity) {
+	public E persist(E entity) {
 		getEntityManager().persist(entity);
 		return entity;
 	}
 
 	@Transactional
-	public E merge(@Valid E entity) {
+	public E merge(E entity) {
 		return getEntityManager().merge(entity);
 	}
 
-	public E find(@NotNull ID id) {
+	public E find(ID id) {
 		return getEntityManager().find(entityClass, id);
 	}
 
 	@Transactional
-	public void remove(@NotNull ID id) {
+	public void remove(ID id) {
 		getEntityManager().remove(getEntityManager().find(entityClass, id));
 	}
 
@@ -154,7 +153,7 @@ public abstract class EntityService<E, ID> {
 		}
 	}
 
-	private Object searchSum(Field field, TableSearchQuery tb) {
+	private Long searchSum(Field field, TableSearchQuery tb) {
 		CriteriaBuilder cb = getEntityManager().getCriteriaBuilder();
 		CriteriaQuery cq = cb.createQuery();
 		Root<E> root = cq.from(entityClass);
@@ -164,9 +163,9 @@ public abstract class EntityService<E, ID> {
 			query = createCommonQuery(cb, cq, root, tb);
 		}
 		try {
-			return query.getSingleResult();
+			return (Long) query.getSingleResult();
 		} catch (NoResultException ex) {
-			return 0;
+			return 0L;
 		}
 	}
 
@@ -260,10 +259,8 @@ public abstract class EntityService<E, ID> {
 				} else {
 					// TODO try if it works within postgres and with EclipseLink
 					// this works with hibernate/mysql
-					List<Predicate> orPredicates = new ArrayList<>();
-					for (String value : entityFilter.getValues()) {
-						orPredicates.add(cb.equal(cb.lower(cb.concat(path, "")), value.toLowerCase()));
-					}
+					List<Predicate> orPredicates = entityFilter.getValues().stream().map(value ->
+							cb.equal(cb.lower(cb.concat(path, "")), value.toLowerCase())).collect(Collectors.toList());
 					predicates.add(cb.or(orPredicates.toArray(new Predicate[orPredicates.size()])));
 
 				}
@@ -320,26 +317,28 @@ public abstract class EntityService<E, ID> {
 					predicates.add(cb.lessThanOrEqualTo(path, new Timestamp(Long.valueOf(firstValue))));
 				}
 				break;
+			case EXACT_NOT:
+				break;
 		}
 		return predicates;
 	}
 
-	public static class NumericValue<T> {
+	public static class NumericValue {
 
-		private T value;
+		private Number value;
 
 		public NumericValue() {
 		}
 
-		public NumericValue(T value) {
+		public NumericValue(Number value) {
 			this.value = value;
 		}
 
-		public T getValue() {
+		public Number getValue() {
 			return value;
 		}
 
-		public void setValue(T value) {
+		public void setValue(Number value) {
 			this.value = value;
 		}
 	}

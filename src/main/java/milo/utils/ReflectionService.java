@@ -1,10 +1,9 @@
 package milo.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonValue;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -51,14 +50,13 @@ public class ReflectionService {
 		return map;
 	}
 
-	public static JsonNode createJsonNode(Class clazz, int maxDeep) {
+	public static JsonObject createJsonNode(Class clazz, int maxDeep) {
 
-		if (maxDeep <= 0 || JsonNode.class.isAssignableFrom(clazz)) {
+		if (maxDeep <= 0 || JsonObject.class.isAssignableFrom(clazz)) {
 			return null;
 		}
 
-		ObjectMapper objectMapper = new ObjectMapper();
-		ObjectNode objectNode = objectMapper.createObjectNode();
+		JsonObject objectNode = JsonValue.EMPTY_JSON_OBJECT;
 
 		for (Field field : clazz.getDeclaredFields()) {
 			field.setAccessible(true);
@@ -68,7 +66,7 @@ public class ReflectionService {
 				if (field.getType().isArray() || Collection.class.isAssignableFrom(field.getType())) {
 					ParameterizedType collectionType = (ParameterizedType) field.getGenericType();
 					Class<?> type = (Class<?>) collectionType.getActualTypeArguments()[0];
-					ArrayNode arrayNode = objectMapper.createArrayNode();
+					JsonArray arrayNode = JsonValue.EMPTY_JSON_ARRAY;
 					arrayNode.add(createJsonNode(type, maxDeep - 1));
 					objectNode.replace(key, arrayNode);
 				} else {
@@ -76,11 +74,11 @@ public class ReflectionService {
 					if (Modifier.isStatic(field.getModifiers())) {
 						continue;
 					} else if (type.isEnum()) {
-						objectNode.put(key, Enum.class.getName());
+						objectNode.put(key, Json.createValue(Enum.class.getName()));
 					} else if (!type.getName().startsWith("java") && !key.startsWith("_")) {
 						objectNode.replace(key, createJsonNode(type, maxDeep - 1));
 					} else {
-						objectNode.put(key, type.getName());
+						objectNode.put(key, Json.createValue(type.getName()));
 					}
 				}
 			} catch (Exception e) {
