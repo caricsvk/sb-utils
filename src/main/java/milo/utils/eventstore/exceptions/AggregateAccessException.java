@@ -24,7 +24,7 @@ public class AggregateAccessException extends RuntimeException {
 		return this;
 	}
 
-	public AggregateAccessException setNotFound() {
+	public AggregateAccessException asNotFound() {
 		status = Response.Status.NOT_FOUND;
 		return this;
 	}

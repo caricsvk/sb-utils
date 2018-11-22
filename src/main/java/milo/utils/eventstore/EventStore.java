@@ -34,7 +34,7 @@ public abstract class EventStore {
 
 	protected abstract <T extends Aggregate<T>> StoreObject getStoredObject(final Class<T> entityType, final String aggregateId);
 
-	public <T extends Event> void subscribe(Class<T> eventType, EventHandler<T> eventHandler) {
+	public <T extends Event> void subscribe(Class<T> eventType, EventHandler<T> eventHandler) throws Exception {
 		messageBroker.subscribe(eventType, eventHandler);
 	}
 
@@ -67,7 +67,7 @@ public abstract class EventStore {
 		for (Event event : events)
 			try {
 				EventStore.logEvent("emit", event.getEventName(), null);
-				messageBroker.send(event);
+				messageBroker.publish(event);
 			} catch (Exception e) {
 				LOG.log(Level.WARNING, e.getMessage(), e);
 			}
