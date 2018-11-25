@@ -66,21 +66,18 @@ public class ImageHelper {
 		if (! HttpHelper.isUrl(url)) {
 			return null;
 		}
-		Image image = new Image();
+		Image image;
 		URLConnection urlConnection = null;
 		try {
 
 			urlConnection = HttpHelper.buildUrlConnection(url);
 			urlConnection.connect();
 
+			String imgName = "not-defined";
 			try {
 				String[] splitedUrl = url.split("/");
-				String imgName = splitedUrl[splitedUrl.length - 1];
-				image.setName(imgName.split("\\?")[0]);
-				String[] splitedImgName = image.getName().split("\\.");
-				if (splitedImgName.length > 1) {
-					image.setContentType("image/" + splitedImgName[splitedImgName.length - 1]);
-				}
+				imgName = splitedUrl[splitedUrl.length - 1];
+				imgName = imgName.split("\\?")[0];
 			} catch (Exception e) {
 				LOG.log(Level.SEVERE, "MediaResource.createFromUrl caught " + e.getMessage() + " for " + url);
 			}
@@ -91,22 +88,7 @@ public class ImageHelper {
 			} else {
 				inputStream = urlConnection.getInputStream();
 			}
-			BufferedImage ioImage = ImageIO.read(inputStream);
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			try {
-				inputStream.close();
-				ImageIO.write(ioImage, extractContentTypeForImageIO(urlConnection.getContentType()), outputStream);
-				image.setContentType(urlConnection.getContentType());
-			} catch (Exception ex) {
-				ImageIO.write(ioImage, extractContentTypeForImageIO(image.getContentType()), outputStream);
-			}
-			outputStream.flush();
-			outputStream.close();
-			image.setUrl(url);
-			image.setHeight(ioImage.getHeight());
-			image.setWidth(ioImage.getWidth());
-			image.setContent(outputStream.toByteArray());
-			image.setBufferedImage(ioImage);
+			image = create(inputStream, imgName, urlConnection.getContentType(), url);
 		} catch (Exception ex) {
 			LOG.log(Level.SEVERE, ex.getMessage(), ex);
 			return null;
@@ -115,6 +97,40 @@ public class ImageHelper {
 				((HttpURLConnection) urlConnection).disconnect();
 			}
 		}
+		return image;
+	}
+
+	/**
+	 *
+	 * @param inputStream
+	 * @param name
+	 * @param contentType
+	 * @param url - optional
+	 * @return
+	 * @throws IOException
+	 */
+	public static Image create(InputStream inputStream, String name, String contentType, String url) throws IOException {
+		Image image = new Image();
+		BufferedImage ioImage = ImageIO.read(inputStream);
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		try {
+			inputStream.close();
+			ImageIO.write(ioImage, extractContentTypeForImageIO(contentType), outputStream);
+			image.setContentType(contentType);
+		} catch (Exception ex) {
+			String[] splitImgName = name.split("\\.");
+			String suffixContentType = "image/" + splitImgName[splitImgName.length - 1];
+			ImageIO.write(ioImage, extractContentTypeForImageIO(suffixContentType), outputStream);
+			image.setContentType(suffixContentType);
+		}
+		outputStream.flush();
+		outputStream.close();
+		image.setName(name);
+		image.setUrl(url);
+		image.setHeight(ioImage.getHeight());
+		image.setWidth(ioImage.getWidth());
+		image.setContent(outputStream.toByteArray());
+		image.setBufferedImage(ioImage);
 		return image;
 	}
 

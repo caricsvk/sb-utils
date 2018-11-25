@@ -113,7 +113,7 @@ public abstract class EntityService<E, ID> {
 		if (tb.getOffset() > 0) {
 			query.setFirstResult(tb.getOffset());
 		}
-		if (tb.getLimit() > 0) {
+		if (tb.getLimit() != null && tb.getLimit() > 0) {
 			query.setMaxResults(tb.getLimit());
 		}
 
