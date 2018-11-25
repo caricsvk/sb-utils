@@ -1,8 +1,6 @@
 package milo.utils.documentdb;
 
 import javax.validation.Valid;
-import javax.ws.rs.BeanParam;
-import javax.ws.rs.PathParam;
 import java.util.List;
 
 public abstract class EntityService<T extends DocumentEntity> {
@@ -26,19 +24,19 @@ public abstract class EntityService<T extends DocumentEntity> {
 		return entity;
 	}
 
-	public T find(@PathParam("id") String id) {
+	public T find(String id) {
 		return getDocumentManager().get(entityClass, id);
 	}
 
-	public void remove(@PathParam("id") String id) {
+	public void remove(String id) {
 		getDocumentManager().delete(entityClass, id);
 	}
 
-	public long count(@BeanParam DocumentSearchQuery dsr) {
+	public long count(DocumentSearchQuery dsr) {
 		return getDocumentManager().findCount(entityClass, dsr);
 	}
 
-	public List<T> getAll(@BeanParam DocumentSearchQuery dsr) {
+	public List<T> search(DocumentSearchQuery dsr) {
 		return getDocumentManager().find(entityClass, dsr);
 	}
 
