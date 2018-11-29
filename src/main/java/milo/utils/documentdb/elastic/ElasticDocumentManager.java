@@ -290,7 +290,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			case EXACT_NOT:
 				for (String value : entityFilter.getValues()) {
 					TermFilterBuilder termFilterBuilder = FilterBuilders.termFilter(
-							entityFilter.getFieldName(), value);
+							entityFilter.getFieldName(), value.toLowerCase());
 					if (entityFilter.getValues().size() == 1) {
 						return termFilterBuilder;
 					}
@@ -300,7 +300,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			case EXACT:
 				for (String value : entityFilter.getValues()) {
 					TermFilterBuilder termFilterBuilder = FilterBuilders.termFilter(
-							entityFilter.getFieldName(), value);
+							entityFilter.getFieldName(), value.toLowerCase());
 					if (entityFilter.getValues().size() == 1) {
 						return termFilterBuilder;
 					}
