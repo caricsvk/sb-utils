@@ -20,7 +20,13 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.query.AndFilterBuilder;
+import org.elasticsearch.index.query.FilterBuilder;
+import org.elasticsearch.index.query.FilterBuilders;
+import org.elasticsearch.index.query.OrFilterBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermFilterBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
@@ -213,10 +219,11 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 	private SearchResponse search(ElasticIndexType elasticIndexType, DocumentSearchQuery dsr) {
 
 		QueryBuilder qb = null;
-		FilterBuilder fb = null;
+		if (dsr.getFilterBuilder() == null) {
+			dsr.setFilterBuilder(FilterBuilders.andFilter());
+		}
 
-		if (dsr.getFilterBuilder() != null || dsr.getQueryBuilder() != null) {
-			fb = dsr.getFilterBuilder();
+		if (dsr.getQueryBuilder() != null) {
 			qb = dsr.getQueryBuilder();
 		} else if (dsr.getId() != null && !dsr.getId().isEmpty()) {
 //				dsr.getFilter().replaceAll("-", "\\-")
@@ -224,16 +231,14 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		} else if (dsr.getFilter() != null && !dsr.getFilter().isEmpty()) {
 			qb = QueryBuilders.matchQuery("_all", dsr.getFilter());
 		} else {
-			AndFilterBuilder andFilterBuilder = FilterBuilders.andFilter();
 			for (Map.Entry<String, EntityFilter> entry : dsr.getFilterParameters().entrySet()) {
 				if (EntityFilterType.WILDCARD.equals(entry.getValue().getEntityFilterType())){
 					qb = QueryBuilders.matchQuery(entry.getValue().getFieldName(),
 							entry.getValue().getValue().toLowerCase());
 				} else {
-					andFilterBuilder.add(createPredicates(entry.getValue()));
+					dsr.getFilterBuilder().add(createPredicates(entry.getValue()));
 				}
 			}
-			fb = andFilterBuilder;
 		}
 
 		if (dsr.getScrollId() != null) {
@@ -246,10 +251,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 
 			srb.setVersion(true);
 			srb.setTypes(elasticIndexType.getType());
-
-			if (fb != null) {
-				srb.setPostFilter(fb);
-			}
+			srb.setPostFilter(dsr.getFilterBuilder());
 			if (qb != null) {
 				srb.setQuery(qb);
 			}
@@ -272,7 +274,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 				srb.setScroll(new TimeValue(dsr.getScroll()));
 				srb.setSearchType(SearchType.SCAN);
 			}
-//			System.out.println("ElasticDocumentManager.search: " + srb.toString());
+			System.out.println("ElasticDocumentManager.search: " + srb.toString());
 			SearchResponse searchResponse = srb.execute().actionGet();
 			dsr.setScrollId(searchResponse.getScrollId()); //in case of scrolling
 

@@ -3,7 +3,7 @@ package milo.utils.documentdb;
 import milo.utils.jpa.search.CommonSearchQuery;
 import milo.utils.jpa.search.EntityFilter;
 import milo.utils.jpa.search.EntityFilterType;
-import org.elasticsearch.index.query.FilterBuilder;
+import org.elasticsearch.index.query.AndFilterBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 
 import javax.ws.rs.DefaultValue;
@@ -11,7 +11,12 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -32,9 +37,10 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	private String scrollId;
 
 	Map<String, EntityFilter> filterParameters = new HashMap<>();
+	MultivaluedMap<String, String> queryParameters;
 
 	private QueryBuilder queryBuilder = null;
-	private FilterBuilder filterBuilder = null;
+	private AndFilterBuilder filterBuilder = null;
 
 	public DocumentSearchQuery() {
 	}
@@ -49,7 +55,7 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 		knownKeys.add("filter");
 		knownKeys.add("field");
 
-		MultivaluedMap<String, String> queryParameters = ui.getQueryParameters();
+		queryParameters = ui.getQueryParameters();
 		List<EntityFilterType> filterTypes = Arrays.asList(EntityFilterType.values());
 
 		for (Map.Entry<String, List<String>> param : queryParameters.entrySet()) {
@@ -82,9 +88,6 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 					entityFilter.setValues(existingValues);
 				}
 				filterParameters.put(fieldName, entityFilter);
-			} else {
-				EntityFilter entityFilter = new EntityFilter(param.getKey(), EntityFilterType.EXACT, param.getValue());
-				filterParameters.put(param.getKey(), entityFilter);
 			}
 		}
 	}
@@ -153,11 +156,11 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 		this.queryBuilder = queryBuilder;
 	}
 
-	public FilterBuilder getFilterBuilder() {
+	public AndFilterBuilder getFilterBuilder() {
 		return filterBuilder;
 	}
 
-	public void setFilterBuilder(FilterBuilder filterBuilder) {
+	public void setFilterBuilder(AndFilterBuilder filterBuilder) {
 		this.filterBuilder = filterBuilder;
 	}
 
@@ -167,6 +170,10 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 
 	public void setFilterParameters(Map<String, EntityFilter> filterParameters) {
 		this.filterParameters = filterParameters;
+	}
+
+	public MultivaluedMap<String, String> getQueryParameters() {
+		return queryParameters;
 	}
 
 	@Override
