@@ -1,5 +1,6 @@
 package milo.utils.jpa.search;
 
+import javax.validation.constraints.Max;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.QueryParam;
 
@@ -10,6 +11,7 @@ public class CommonSearchQuery {
 	private Integer offset = 0;
 	@QueryParam("limit")
 	@DefaultValue("0")
+	@Max(100)
 	private Integer limit = 0;
 	@QueryParam("order")
 	@DefaultValue("id")
