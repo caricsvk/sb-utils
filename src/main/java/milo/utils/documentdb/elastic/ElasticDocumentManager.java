@@ -39,6 +39,8 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.lang.annotation.AnnotationFormatError;
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -48,6 +50,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public abstract class ElasticDocumentManager implements DocumentManager {
+
+	private static final Logger LOG = Logger.getLogger(ElasticDocumentManager.class.getName());
 
 	private static final String ALL = "_all";
 	private Client client;
@@ -199,10 +203,12 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		List<T> objects = new ArrayList<>();
 		for (SearchHit sh : searchResponse.getHits()) {
 			try {
-				T object = getJsonSerializer().deserialize(sh.getSourceAsString(), documentClass);
+				T object = dsr.getFields() == null || dsr.getFields().isEmpty() ?
+						getJsonSerializer().deserialize(sh.getSourceAsString(), documentClass) :
+						makeInstanceFromFields(documentClass, dsr.getFields(), sh.getFields());
 				object.setId(sh.getId());
 				objects.add(object);
-			} catch (IOException ex) {
+			} catch (IOException | InstantiationException | NoSuchFieldException | IllegalAccessException ex) {
 				Logger.getLogger(ElasticDocumentManager.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
@@ -252,6 +258,9 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			srb.setVersion(true);
 			srb.setTypes(elasticIndexType.getType());
 			srb.setPostFilter(dsr.getFilterBuilder());
+			if (dsr.getFields() != null && !dsr.getFields().isEmpty()) {
+				dsr.getFields().forEach(srb::addField);
+			}
 			if (qb != null) {
 				srb.setQuery(qb);
 			}
@@ -364,6 +373,24 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			results.add(hit.getFields());
 		});
 		return results;
+	}
+
+	private <T> T makeInstanceFromFields(Class<T> documentClass, List<String> fieldNames, Map<String, SearchHitField> fields)
+			throws IllegalAccessException, InstantiationException, NoSuchFieldException {
+		T object = documentClass.newInstance();
+		for (String fieldName : fieldNames) {
+			Field field = documentClass.getDeclaredField(fieldName);
+			field.setAccessible(true);
+			Object value = fields.get(fieldName) != null ? fields.get(fieldName).getValue() : null;
+			if (value != null && BigDecimal.class.isAssignableFrom(field.getType())) {
+				value = BigDecimal.valueOf(Long.class.isAssignableFrom(value.getClass()) ? (Long) value :
+						Double.class.isAssignableFrom(value.getClass()) ? (Double) value : (Integer) value);
+			} else if (value != null && field.getType().isEnum()) {
+				value = Enum.valueOf(field.getType().asSubclass(Enum.class), (String) value);
+			}
+			field.set(object, value);
+		}
+		return object;
 	}
 
 }

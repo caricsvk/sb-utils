@@ -36,9 +36,9 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	private Long scroll;
 	private String scrollId;
 
-	Map<String, EntityFilter> filterParameters = new HashMap<>();
-	MultivaluedMap<String, String> queryParameters;
-
+	private List<String> fields;
+	private Map<String, EntityFilter> filterParameters = new HashMap<>();
+	private MultivaluedMap<String, String> queryParameters;
 	private QueryBuilder queryBuilder = null;
 	private AndFilterBuilder filterBuilder = null;
 
@@ -118,6 +118,9 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 		return scrollId;
 	}
 
+	public void setFields(List<String> fields) {
+		this.fields = fields;
+	}
 	public void setScrollId(String scrollId) {
 		this.scrollId = scrollId;
 	}
@@ -174,6 +177,13 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 
 	public MultivaluedMap<String, String> getQueryParameters() {
 		return queryParameters;
+	}
+
+	public List<String> getFields() {
+		if (fields == null) {
+			fields = new ArrayList<>();
+		}
+		return fields;
 	}
 
 	@Override
