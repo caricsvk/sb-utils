@@ -283,7 +283,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 				srb.setScroll(new TimeValue(dsr.getScroll()));
 				srb.setSearchType(SearchType.SCAN);
 			}
-			System.out.println("ElasticDocumentManager.search: " + srb.toString());
+//			System.out.println("ElasticDocumentManager.search: " + srb.toString());
 			SearchResponse searchResponse = srb.execute().actionGet();
 			dsr.setScrollId(searchResponse.getScrollId()); //in case of scrolling
 
