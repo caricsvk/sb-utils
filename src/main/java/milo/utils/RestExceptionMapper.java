@@ -1,6 +1,8 @@
 package milo.utils;
 
+import javax.print.attribute.standard.PresentationDirection;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.RedirectionException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -24,13 +26,16 @@ public class RestExceptionMapper implements ExceptionMapper<Throwable> {
 			Response response = webApplicationException.getResponse();
 			log.log(Level.INFO, "RestExceptionMapper caught exception at " + getUrl() + " : " + exception.getMessage());
 			// log only not expected exceptions
+			if (response.getStatus() == 307 && webApplicationException instanceof RedirectionException) {
+				return Response.seeOther(response.getLocation()).build();
+			}
 			if (response.getStatus() < 400 || response.getStatus() > 406) {
 				log.log(Level.WARNING, exception.getMessage(), exception);
 			}
 			// if there is entity use it, otherwise build entity from status info
-			return webApplicationException.getResponse().getEntity() == null ?
-					Response.status(response.getStatus()).entity(response.getStatusInfo().toString()).build() :
-					webApplicationException.getResponse();
+			Object entity = response.getLocation() != null ? response.getLocation() : response.getEntity();
+			return entity != null ? Response.status(response.getStatus()).entity(entity).build() :
+					Response.status(response.getStatus()).entity(response.getStatusInfo().toString()).build();
 		} else {
 			log.log(Level.WARNING, "RestExceptionMapper caught exception at " + getUrl() + " : "
 					+ exception.getMessage(), exception);
