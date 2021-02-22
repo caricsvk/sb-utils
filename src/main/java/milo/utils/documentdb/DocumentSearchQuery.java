@@ -3,7 +3,7 @@ package milo.utils.documentdb;
 import milo.utils.jpa.search.CommonSearchQuery;
 import milo.utils.jpa.search.EntityFilter;
 import milo.utils.jpa.search.EntityFilterType;
-import org.elasticsearch.index.query.AndFilterBuilder;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 
 import javax.ws.rs.DefaultValue;
@@ -40,7 +40,7 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	private Map<String, EntityFilter> filterParameters = new HashMap<>();
 	private MultivaluedMap<String, String> queryParameters;
 	private QueryBuilder queryBuilder = null;
-	private AndFilterBuilder filterBuilder = null;
+	private BoolQueryBuilder filterBuilder = null;
 
 	public DocumentSearchQuery() {
 	}
@@ -159,11 +159,11 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 		this.queryBuilder = queryBuilder;
 	}
 
-	public AndFilterBuilder getFilterBuilder() {
+	public BoolQueryBuilder getFilterBuilder() {
 		return filterBuilder;
 	}
 
-	public void setFilterBuilder(AndFilterBuilder filterBuilder) {
+	public void setFilterBuilder(BoolQueryBuilder filterBuilder) {
 		this.filterBuilder = filterBuilder;
 	}
 

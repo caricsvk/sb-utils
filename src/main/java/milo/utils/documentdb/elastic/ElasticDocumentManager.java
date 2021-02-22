@@ -7,30 +7,32 @@ import milo.utils.documentdb.DocumentSearchQuery;
 import milo.utils.jpa.search.EntityFilter;
 import milo.utils.jpa.search.EntityFilterType;
 import milo.utils.jpa.search.OrderType;
-import org.elasticsearch.action.delete.DeleteRequestBuilder;
+import org.apache.http.HttpHost;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.AndFilterBuilder;
-import org.elasticsearch.index.query.FilterBuilder;
-import org.elasticsearch.index.query.FilterBuilders;
-import org.elasticsearch.index.query.OrFilterBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.TermFilterBuilder;
+import org.elasticsearch.index.query.SpanTermQueryBuilder;
+import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -45,7 +47,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,7 +55,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 	private static final Logger LOG = Logger.getLogger(ElasticDocumentManager.class.getName());
 
 	private static final String ALL = "_all";
-	private Client client;
+	private RestHighLevelClient client;
 
 	protected abstract String getElasticCluster();
 
@@ -68,12 +69,13 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 
 	@PostConstruct
 	public void init() {
-		Settings s = ImmutableSettings.settingsBuilder().put("cluster.name", getElasticCluster()).build();
-		client = new TransportClient(s).addTransportAddress(new InetSocketTransportAddress(getElasticHost(), getElasticPort()));
+		client = new RestHighLevelClient(RestClient.builder(
+				new HttpHost(getElasticHost(), getElasticPort(), "http")
+		));
 	}
 
 	@PreDestroy
-	public void destroy() {
+	public void destroy() throws IOException {
 		client.close();
 	}
 
@@ -124,7 +126,14 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		try {
 			ElasticIndexType elasticIndexType = getIndexType(document.getClass());
 			String json = getJsonSerializer().serialize(document);
-			IndexResponse response = client.prepareIndex(elasticIndexType.getIndex(), elasticIndexType.getType()).setRefresh(true).setSource(json).execute().actionGet();
+			IndexRequest request = new IndexRequest(elasticIndexType.getIndex())
+					.type(elasticIndexType.getType())
+					.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+					.source(json);
+//			IndexResponse response = client.prepareIndex(
+//					elasticIndexType.getIndex(), elasticIndexType.getType()
+//			).setRefresh(true).setSource(json).execute().actionGet();
+			IndexResponse response = client.index(request, RequestOptions.DEFAULT);
 			return response.getId();
 		} catch (IOException ex) {
 			Logger.getLogger(ElasticDocumentManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -147,8 +156,8 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			updateRequest.type(elasticIndexType.getType());
 			updateRequest.id(document.getId());
 			updateRequest.doc(json);
-			client.update(updateRequest).get();
-		} catch (IOException | InterruptedException | ExecutionException ex) {
+			client.update(updateRequest, RequestOptions.DEFAULT).getGetResult();
+		} catch (IOException ex) {
 			Logger.getLogger(ElasticDocumentManager.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
@@ -166,25 +175,24 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		if (index != null) {
 			elasticIndexType.setIndex(index);
 		}
-		GetResponse response = getResponse(id, elasticIndexType);
-
-		String json = response.getSourceAsString();
-		T object = null;
-
 		try {
-			object = getJsonSerializer().deserialize(json, documentClass);
+			GetResponse response = getResponse(id, elasticIndexType);
+
+			String json = response.getSourceAsString();
+			T object = getJsonSerializer().deserialize(json, documentClass);
 			object.setId(response.getId());
+			return object;
 		} catch (IOException ex) {
 			Logger.getLogger(ElasticDocumentManager.class.getName()).log(Level.SEVERE, null, ex);
+			return null;
 		}
-		return object;
 
 	}
 
-	private GetResponse getResponse(Object id, ElasticIndexType elasticIndexType) {
-		return client.prepareGet(elasticIndexType.getIndex(), elasticIndexType.getType(), (String) id)
-				.execute()
-				.actionGet();
+	private GetResponse getResponse(Object id, ElasticIndexType elasticIndexType) throws IOException {
+		GetRequest request = new GetRequest().index(elasticIndexType.getIndex())
+				.type(elasticIndexType.getType()).id((String) id);
+		return client.get(request, RequestOptions.DEFAULT);
 	}
 
 	@Override
@@ -199,7 +207,13 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		if (index != null) {
 			elasticIndexType.setIndex(index);
 		}
-		SearchResponse searchResponse = search(elasticIndexType, dsr);
+		SearchResponse searchResponse = null;
+		try {
+			searchResponse = search(elasticIndexType, dsr);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
 		List<T> objects = new ArrayList<>();
 		for (SearchHit sh : searchResponse.getHits()) {
 			try {
@@ -219,14 +233,19 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 	@Override
 	public Long findCount(Class<?> documentClass, DocumentSearchQuery dsr) {
 		dsr.setLimit(0);
-		return search(getIndexType(documentClass), dsr).getHits().getTotalHits();
+		try {
+			return search(getIndexType(documentClass), dsr).getHits().getTotalHits().value;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return -500l;
+		}
 	}
 
-	private SearchResponse search(ElasticIndexType elasticIndexType, DocumentSearchQuery dsr) {
+	private SearchResponse search(ElasticIndexType elasticIndexType, DocumentSearchQuery dsr) throws IOException {
 
 		QueryBuilder qb = null;
 		if (dsr.getFilterBuilder() == null) {
-			dsr.setFilterBuilder(FilterBuilders.andFilter());
+			dsr.setFilterBuilder(QueryBuilders.boolQuery());
 		}
 
 		if (dsr.getQueryBuilder() != null) {
@@ -242,33 +261,33 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 					qb = QueryBuilders.matchQuery(entry.getValue().getFieldName(),
 							entry.getValue().getValue().toLowerCase());
 				} else {
-					dsr.getFilterBuilder().add(createPredicates(entry.getValue()));
+					dsr.getFilterBuilder().filter().addAll(createPredicates(entry.getValue()));
 				}
 			}
 		}
 
-		if (dsr.getScrollId() != null) {
-			SearchResponse searchResponse = client.prepareSearchScroll(dsr.getScrollId())
-					.setScroll(new TimeValue(dsr.getScroll())).execute().actionGet();
-			dsr.setScrollId(searchResponse.getScrollId());
-			return searchResponse;
+		if (dsr.getScrollId() != null) { // TODO
+//			SearchResponse searchResponse = client.prepareSearchScroll(dsr.getScrollId())
+//					.setScroll(new TimeValue(dsr.getScroll())).execute().actionGet();
+//			dsr.setScrollId(searchResponse.getScrollId());
+//			return searchResponse;
+			return null;
 		} else {
-			SearchRequestBuilder srb = client.prepareSearch(elasticIndexType.getIndex());
 
-			srb.setVersion(true);
-			srb.setTypes(elasticIndexType.getType());
-			srb.setPostFilter(dsr.getFilterBuilder());
-			if (dsr.getFields() != null && !dsr.getFields().isEmpty()) {
-				dsr.getFields().forEach(srb::addField);
-			}
 			if (qb != null) {
-				srb.setQuery(qb);
+				dsr.getFilterBuilder().must(qb);
 			}
+
+			SearchSourceBuilder srb = new SearchSourceBuilder()
+					.query(dsr.getQueryBuilder())
+					.version(Boolean.TRUE)
+					.query(dsr.getFilterBuilder());
+
 			if (dsr.getLimit() != null && dsr.getLimit() > 0) {
-				srb.setSize(dsr.getLimit());
+				srb.size(dsr.getLimit());
 			}
 			if (dsr.getOffset() != null && dsr.getOffset() > 0) {
-				srb.setFrom(dsr.getOffset());
+				srb.from(dsr.getOffset());
 			}
 			if (dsr.getOrder() != null && !(dsr.getOrder().isEmpty())) {
 				FieldSortBuilder fsb = SortBuilders.fieldSort(dsr.getOrder());
@@ -277,67 +296,88 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 				} else {
 					fsb.order(SortOrder.DESC);
 				}
-				srb.addSort(fsb);
+				srb.sort(fsb);
 			}
+			if (dsr.getFields() != null && !dsr.getFields().isEmpty()) {
+				srb.fetchSource(dsr.getFields().toArray(new String[0]), new String[0]);
+			}
+
+			SearchRequest request = new SearchRequest(elasticIndexType.getIndex())
+					.source(srb)
+					.searchType(elasticIndexType.getType());
+
 			if (dsr.getScroll() != null && dsr.getScroll() > 0) {
-				srb.setScroll(new TimeValue(dsr.getScroll()));
-				srb.setSearchType(SearchType.SCAN);
+				request.scroll(new TimeValue(dsr.getScroll()));
+//				request.setSearchType(SearchType.SCAN);
 			}
-//			System.out.println("ElasticDocumentManager.search: " + srb.toString());
-			SearchResponse searchResponse = srb.execute().actionGet();
+
+			SearchResponse searchResponse = client.search(request, RequestOptions.DEFAULT);
+			System.out.println("ElasticDocumentManager.search: " + srb.toString());
 			dsr.setScrollId(searchResponse.getScrollId()); //in case of scrolling
 
 			return searchResponse;
 		}
 	}
 
-	private FilterBuilder createPredicates(EntityFilter entityFilter) {
-		OrFilterBuilder orFilterBuilder = FilterBuilders.orFilter();
-		AndFilterBuilder andFilterBuilder = FilterBuilders.andFilter();
+	private List<QueryBuilder> createPredicates(EntityFilter entityFilter) {
+		List<QueryBuilder> filterBuilder = QueryBuilders.boolQuery().filter();
+//		OrFilterBuilder orFilterBuilder = FilterBuilders.orFilter();
+//		AndFilterBuilder andFilterBuilder = FilterBuilders.andFilter();
 		if (entityFilter == null) {
-			return orFilterBuilder;
+			return filterBuilder;
 		}
 		switch (entityFilter.getEntityFilterType()) {
 			case EXACT_NOT:
-				for (String value : entityFilter.getValues()) {
-					TermFilterBuilder termFilterBuilder = FilterBuilders.termFilter(
-							entityFilter.getFieldName(), value.toLowerCase());
-					if (entityFilter.getValues().size() == 1) {
-						return termFilterBuilder;
-					}
-					orFilterBuilder.add(FilterBuilders.notFilter(termFilterBuilder));
+				for (String value : entityFilter.getValues()) { // TODO
+//					TermFilterBuilder termFilterBuilder = FilterBuilders.termFilter(
+//							entityFilter.getFieldName(), value.toLowerCase());
+//					if (entityFilter.getValues().size() == 1) {
+//						return termFilterBuilder;
+//					}
+//					orFilterBuilder.add(FilterBuilders.notFilter(termFilterBuilder));
 				}
 				break;
 			case EXACT:
 				for (String value : entityFilter.getValues()) {
-					TermFilterBuilder termFilterBuilder = FilterBuilders.termFilter(
+					TermQueryBuilder termFilterBuilder = QueryBuilders.termQuery(
 							entityFilter.getFieldName(), value.toLowerCase());
 					if (entityFilter.getValues().size() == 1) {
-						return termFilterBuilder;
+						filterBuilder.add(termFilterBuilder);
 					}
-					orFilterBuilder.add(termFilterBuilder);
 				}
 				break;
 			case EMPTY:
 				//TODO
 				break;
 			case MIN:
-				return FilterBuilders.rangeFilter(entityFilter.getFieldName()).from(entityFilter.getFirstValue());
+				filterBuilder.add(
+						QueryBuilders.rangeQuery(entityFilter.getFieldName()).from(entityFilter.getFirstValue())
+				);
 			case MAX:
-				return FilterBuilders.rangeFilter(entityFilter.getFieldName()).to(entityFilter.getFirstValue());
+				filterBuilder.add(
+						QueryBuilders.rangeQuery(entityFilter.getFieldName()).to(entityFilter.getFirstValue())
+				);
 			case MIN_MAX:
-				return FilterBuilders.rangeFilter(entityFilter.getFieldName())
-						.from(entityFilter.getFirstValue())
-						.to(entityFilter.getSecondValue());
+				filterBuilder.add(
+						QueryBuilders.rangeQuery(entityFilter.getFieldName())
+							.from(entityFilter.getFirstValue())
+							.to(entityFilter.getSecondValue())
+				);
 		}
-		return EntityFilterType.EXACT_NOT.equals(entityFilter.getEntityFilterType()) ? andFilterBuilder : orFilterBuilder;
+		return filterBuilder;
+//		return EntityFilterType.EXACT_NOT.equals(entityFilter.getEntityFilterType()) ? andFilterBuilder : orFilterBuilder;
 	}
 
 	@Override
 	public void delete(Class<?> documentClass, Object id) {
 		ElasticIndexType elasticIndexType = getIndexType(documentClass);
-		DeleteRequestBuilder requestBuilder = client.prepareDelete(elasticIndexType.getIndex(), elasticIndexType.getType(), (String) id);
-		requestBuilder.execute().actionGet();
+		DeleteRequest deleteRequest = new DeleteRequest(elasticIndexType.getIndex())
+				.type(elasticIndexType.getType()).id((String) id);
+		try {
+			DeleteResponse delete = client.delete(deleteRequest, RequestOptions.DEFAULT);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public <T extends DocumentEntity> Aggregations aggregations(Class<T> documentClass, AbstractAggregationBuilder aab) {
@@ -346,36 +386,37 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 
 	public <T extends DocumentEntity> Aggregations aggregations(Class<T> documentClass, AbstractAggregationBuilder aab,
 	                                                            QueryBuilder queryBuilder) {
-		ElasticIndexType elasticIndexType = getIndexType(documentClass);
-		SearchRequestBuilder srb = client.prepareSearch(elasticIndexType.getIndex());
-		srb.setSize(0);
-		srb.setTypes(elasticIndexType.getType());
-		srb.setSearchType(SearchType.COUNT);
-		srb.addAggregation(aab);
-		srb.setQuery(queryBuilder);
-//		System.out.println("ElasticDocumentManager.aggregations ---- " + srb.toString());
-		return srb.execute().actionGet().getAggregations();
+//		ElasticIndexType elasticIndexType = getIndexType(documentClass);
+//		SearchRequestBuilder srb = client.prepareSearch(elasticIndexType.getIndex());
+//		srb.setSize(0);
+//		srb.setTypes(elasticIndexType.getType());
+//		srb.setSearchType(SearchType.COUNT);
+//		srb.addAggregation(aab);
+//		srb.setQuery(queryBuilder);
+////		System.out.println("ElasticDocumentManager.aggregations ---- " + srb.toString());
+//		return srb.execute().actionGet().getAggregations();
+		return null; // TODO
 	}
 
-	public <T extends DocumentEntity> List<Map<String, SearchHitField>> getFields(Class<T> lookInClass,
-	                                                                              FilterBuilder filterBuilder,
-	                                                                              List<String> fields,
-	                                                                              int limit) {
-		ElasticIndexType elasticIndexType = getIndexType(lookInClass);
-		SearchRequestBuilder srb = client.prepareSearch(elasticIndexType.getIndex());
-		srb.setSize(limit);
-		srb.setTypes(elasticIndexType.getType());
-		srb.setPostFilter(filterBuilder);
-		fields.forEach(srb::addField);
-		List<Map<String, SearchHitField>> results = new ArrayList<>();
-//		System.out.println("ElasticDocumentManager.getFields -------- " + srb);
-		srb.execute().actionGet().getHits().forEach(hit -> {
-			results.add(hit.getFields());
-		});
-		return results;
-	}
+//	public <T extends DocumentEntity> List<Map<String, SearchHitField>> getFields(Class<T> lookInClass,
+//	                                                                              FilterBuilder filterBuilder,
+//	                                                                              List<String> fields,
+//	                                                                              int limit) {
+//		ElasticIndexType elasticIndexType = getIndexType(lookInClass);
+//		SearchRequestBuilder srb = client.prepareSearch(elasticIndexType.getIndex());
+//		srb.setSize(limit);
+//		srb.setTypes(elasticIndexType.getType());
+//		srb.setPostFilter(filterBuilder);
+//		fields.forEach(srb::addField);
+//		List<Map<String, SearchHitField>> results = new ArrayList<>();
+////		System.out.println("ElasticDocumentManager.getFields -------- " + srb);
+//		srb.execute().actionGet().getHits().forEach(hit -> {
+//			results.add(hit.getFields());
+//		});
+//		return results;
+//	}
 
-	private <T> T makeInstanceFromFields(Class<T> documentClass, List<String> fieldNames, Map<String, SearchHitField> fields)
+	private <T> T makeInstanceFromFields(Class<T> documentClass, List<String> fieldNames, Map<String, DocumentField> fields)
 			throws IllegalAccessException, InstantiationException, NoSuchFieldException {
 		T object = documentClass.newInstance();
 		for (String fieldName : fieldNames) {
