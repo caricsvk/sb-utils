@@ -25,6 +25,8 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.SpanTermQueryBuilder;
@@ -129,7 +131,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			IndexRequest request = new IndexRequest(elasticIndexType.getIndex())
 					.type(elasticIndexType.getType())
 					.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-					.source(json);
+					.source(json, XContentType.JSON);
 //			IndexResponse response = client.prepareIndex(
 //					elasticIndexType.getIndex(), elasticIndexType.getType()
 //			).setRefresh(true).setSource(json).execute().actionGet();
@@ -155,7 +157,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			updateRequest.index(elasticIndexType.getIndex());
 			updateRequest.type(elasticIndexType.getType());
 			updateRequest.id(document.getId());
-			updateRequest.doc(json);
+			updateRequest.doc(json, XContentType.JSON);
 			client.update(updateRequest, RequestOptions.DEFAULT).getGetResult();
 		} catch (IOException ex) {
 			Logger.getLogger(ElasticDocumentManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -304,7 +306,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 
 			SearchRequest request = new SearchRequest(elasticIndexType.getIndex())
 					.source(srb)
-					.searchType(elasticIndexType.getType());
+					.types(elasticIndexType.getType());
 
 			if (dsr.getScroll() != null && dsr.getScroll() > 0) {
 				request.scroll(new TimeValue(dsr.getScroll()));
@@ -339,8 +341,9 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 				break;
 			case EXACT:
 				for (String value : entityFilter.getValues()) {
-					TermQueryBuilder termFilterBuilder = QueryBuilders.termQuery(
-							entityFilter.getFieldName(), value.toLowerCase());
+					MatchPhraseQueryBuilder termFilterBuilder = QueryBuilders.matchPhraseQuery(
+							entityFilter.getFieldName(), value.toLowerCase()
+					);
 					if (entityFilter.getValues().size() == 1) {
 						filterBuilder.add(termFilterBuilder);
 					}
