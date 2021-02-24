@@ -301,7 +301,8 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 				srb.sort(fsb);
 			}
 			if (dsr.getFields() != null && !dsr.getFields().isEmpty()) {
-				srb.fetchSource(dsr.getFields().toArray(new String[0]), new String[0]);
+				srb.fetchSource(false);
+				dsr.getFields().forEach(field -> srb.fetchField(field));
 			}
 
 			SearchRequest request = new SearchRequest(elasticIndexType.getIndex())
