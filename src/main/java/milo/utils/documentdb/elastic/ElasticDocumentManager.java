@@ -8,6 +8,7 @@ import milo.utils.jpa.search.EntityFilter;
 import milo.utils.jpa.search.EntityFilterType;
 import milo.utils.jpa.search.OrderType;
 import org.apache.http.HttpHost;
+import org.apache.lucene.queryparser.xml.builders.BooleanQueryBuilder;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
@@ -26,6 +27,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -51,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public abstract class ElasticDocumentManager implements DocumentManager {
 
@@ -259,11 +262,11 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			qb = QueryBuilders.matchQuery("_all", dsr.getFilter());
 		} else {
 			for (Map.Entry<String, EntityFilter> entry : dsr.getFilterParameters().entrySet()) {
-				if (EntityFilterType.WILDCARD.equals(entry.getValue().getEntityFilterType())){
+				if (EntityFilterType.WILDCARD.equals(entry.getValue().getEntityFilterType())) {
 					qb = QueryBuilders.matchQuery(entry.getValue().getFieldName(),
 							entry.getValue().getValue().toLowerCase());
 				} else {
-					dsr.getFilterBuilder().filter().addAll(createPredicates(entry.getValue()));
+					dsr.getFilterBuilder().filter().add(createPredicates(entry.getValue()));
 				}
 			}
 		}
@@ -322,54 +325,39 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		}
 	}
 
-	private List<QueryBuilder> createPredicates(EntityFilter entityFilter) {
-		List<QueryBuilder> filterBuilder = QueryBuilders.boolQuery().filter();
-//		OrFilterBuilder orFilterBuilder = FilterBuilders.orFilter();
-//		AndFilterBuilder andFilterBuilder = FilterBuilders.andFilter();
-		if (entityFilter == null) {
-			return filterBuilder;
-		}
+	private QueryBuilder createPredicates(EntityFilter entityFilter) {
 		switch (entityFilter.getEntityFilterType()) {
 			case EXACT_NOT:
-				for (String value : entityFilter.getValues()) { // TODO
-//					TermFilterBuilder termFilterBuilder = FilterBuilders.termFilter(
-//							entityFilter.getFieldName(), value.toLowerCase());
-//					if (entityFilter.getValues().size() == 1) {
-//						return termFilterBuilder;
-//					}
-//					orFilterBuilder.add(FilterBuilders.notFilter(termFilterBuilder));
-				}
-				break;
 			case EXACT:
-				for (String value : entityFilter.getValues()) {
-					MatchPhraseQueryBuilder termFilterBuilder = QueryBuilders.matchPhraseQuery(
-							entityFilter.getFieldName(), value.toLowerCase()
-					);
-					if (entityFilter.getValues().size() == 1) {
-						filterBuilder.add(termFilterBuilder);
-					}
+				List<String> lowerCaseValues = entityFilter.getValues().stream()
+						.map(String::toLowerCase).collect(Collectors.toList());
+				QueryBuilder query;
+				if (lowerCaseValues.size() == 1) {
+					query = QueryBuilders.matchPhraseQuery(entityFilter.getFieldName(), lowerCaseValues.get(0));
+				} else {
+					BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+					lowerCaseValues.forEach(value -> boolQuery.should().add(
+							QueryBuilders.matchPhraseQuery(entityFilter.getFieldName(), value)
+					));
+					query = boolQuery;
 				}
-				break;
+				return EntityFilterType.EXACT.equals(entityFilter.getEntityFilterType()) ? query :
+						QueryBuilders.boolQuery().mustNot(query);
 			case EMPTY:
-				//TODO
-				break;
+				return QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(entityFilter.getFieldName()));
 			case MIN:
-				filterBuilder.add(
-						QueryBuilders.rangeQuery(entityFilter.getFieldName()).from(entityFilter.getFirstValue())
-				);
+				return QueryBuilders.rangeQuery(entityFilter.getFieldName()).from(entityFilter.getFirstValue());
 			case MAX:
-				filterBuilder.add(
-						QueryBuilders.rangeQuery(entityFilter.getFieldName()).to(entityFilter.getFirstValue())
-				);
+				return QueryBuilders.rangeQuery(entityFilter.getFieldName()).to(entityFilter.getFirstValue());
+			case WILDCARD:
+				return QueryBuilders.matchQuery(entityFilter.getFieldName(), entityFilter.getValue().toLowerCase());
 			case MIN_MAX:
-				filterBuilder.add(
-						QueryBuilders.rangeQuery(entityFilter.getFieldName())
+				return QueryBuilders.rangeQuery(entityFilter.getFieldName())
 							.from(entityFilter.getFirstValue())
-							.to(entityFilter.getSecondValue())
-				);
+							.to(entityFilter.getSecondValue());
+			default:
+				throw new IllegalStateException("Unexpected value: " + entityFilter.getEntityFilterType());
 		}
-		return filterBuilder;
-//		return EntityFilterType.EXACT_NOT.equals(entityFilter.getEntityFilterType()) ? andFilterBuilder : orFilterBuilder;
 	}
 
 	@Override
