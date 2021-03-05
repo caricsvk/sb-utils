@@ -3,6 +3,9 @@ package milo.utils.jpa.search;
 import javax.validation.constraints.Max;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.QueryParam;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CommonSearchQuery {
 
@@ -22,6 +25,28 @@ public class CommonSearchQuery {
 	@QueryParam("filter")
 	@DefaultValue("")
 	private String filter = "";
+
+	protected Map<String, EntityFilter> filterParameters = new HashMap<>();
+
+	protected boolean filterParamExists(String name) {
+		return filterParameters.containsKey(name);
+	}
+
+	public Map<String, EntityFilter> getFilterParameters() {
+		return filterParameters;
+	}
+
+	public void setFilterParameters(Map<String, EntityFilter> filterParameters) {
+		this.filterParameters = filterParameters;
+	}
+
+	public void setFilterParam(String key, EntityFilterType type, String... values) {
+		this.getFilterParameters().put(key, new EntityFilter(key, type, Arrays.asList(values)));
+	}
+
+	public void putEntityFilter(EntityFilter entityFilter) {
+		getFilterParameters().put(entityFilter.getFieldName(), entityFilter);
+	}
 
 	public Integer getOffset() {
 		return offset;

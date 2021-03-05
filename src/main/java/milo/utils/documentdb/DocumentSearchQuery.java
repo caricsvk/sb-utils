@@ -37,7 +37,6 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	private String scrollId;
 
 	private List<String> fields;
-	private Map<String, EntityFilter> filterParameters = new HashMap<>();
 	private MultivaluedMap<String, String> queryParameters;
 	private QueryBuilder queryBuilder = null;
 	private BoolQueryBuilder filterBuilder = null;
@@ -90,10 +89,6 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 				filterParameters.put(fieldName, entityFilter);
 			}
 		}
-	}
-
-	private boolean filterParamExists(String name) {
-		return filterParameters.containsKey(name);
 	}
 
 	private boolean isNumber(String value) {
@@ -165,14 +160,6 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 
 	public void setFilterBuilder(BoolQueryBuilder filterBuilder) {
 		this.filterBuilder = filterBuilder;
-	}
-
-	public Map<String, EntityFilter> getFilterParameters() {
-		return filterParameters;
-	}
-
-	public void setFilterParameters(Map<String, EntityFilter> filterParameters) {
-		this.filterParameters = filterParameters;
 	}
 
 	public MultivaluedMap<String, String> getQueryParameters() {

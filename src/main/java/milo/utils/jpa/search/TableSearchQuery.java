@@ -14,7 +14,6 @@ import java.util.Map;
 
 public class TableSearchQuery extends CommonSearchQuery {
 
-	private Map<String, EntityFilter> filterParameters = new HashMap<>();
 	private String[] safeOrderPath = null;
 
 	public static TableSearchQuery createEmptyInstance() {
@@ -65,18 +64,6 @@ public class TableSearchQuery extends CommonSearchQuery {
 
 	public Query createQuery(EntityManager em, CriteriaBuilder cb, CriteriaQuery cq, Root root) {
 		return null;
-	}
-
-	public Map<String, EntityFilter> getFilterParameters() {
-		return filterParameters;
-	}
-
-	public void setFilterParameters(Map<String, EntityFilter> filterParameters) {
-		this.filterParameters = filterParameters;
-	}
-
-	public void putEntityFilter(EntityFilter entityFilter) {
-		getFilterParameters().put(entityFilter.getFieldName(), entityFilter);
 	}
 
 	public String[] getSafeOrderPath() {
