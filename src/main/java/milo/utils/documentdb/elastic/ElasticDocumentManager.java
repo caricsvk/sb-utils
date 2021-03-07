@@ -115,7 +115,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			}
 
 			elasticIndexType.setIndex(elasticIndexPrefix + "_" + index);
-			elasticIndexType.setType(annotation.type());
+//			elasticIndexType.setType(annotation.type());
 			return elasticIndexType;
 		} else {
 			throw new AnnotationFormatError("Provided entity is not annotated with ElasticDocument annotation.");
@@ -132,7 +132,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			ElasticIndexType elasticIndexType = getIndexType(document.getClass());
 			String json = getJsonSerializer().serialize(document);
 			IndexRequest request = new IndexRequest(elasticIndexType.getIndex())
-					.type(elasticIndexType.getType())
+//					.type(elasticIndexType.getType())
 					.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
 					.source(json, XContentType.JSON);
 //			IndexResponse response = client.prepareIndex(
@@ -158,7 +158,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			String json = getJsonSerializer().serialize(document);
 			UpdateRequest updateRequest = new UpdateRequest();
 			updateRequest.index(elasticIndexType.getIndex());
-			updateRequest.type(elasticIndexType.getType());
+//			updateRequest.type(elasticIndexType.getType());
 			updateRequest.id(document.getId());
 			updateRequest.doc(json, XContentType.JSON);
 			client.update(updateRequest, RequestOptions.DEFAULT).getGetResult();
@@ -195,8 +195,8 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 	}
 
 	private GetResponse getResponse(Object id, ElasticIndexType elasticIndexType) throws IOException {
-		GetRequest request = new GetRequest().index(elasticIndexType.getIndex())
-				.type(elasticIndexType.getType()).id((String) id);
+		GetRequest request = new GetRequest().index(elasticIndexType.getIndex()).id((String) id);
+//				.type(elasticIndexType.getType()).id((String) id);
 		return client.get(request, RequestOptions.DEFAULT);
 	}
 
@@ -309,8 +309,8 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			}
 
 			SearchRequest request = new SearchRequest(elasticIndexType.getIndex())
-					.source(srb)
-					.types(elasticIndexType.getType());
+					.source(srb);
+//					.types(elasticIndexType.getType());
 
 			if (dsr.getScroll() != null && dsr.getScroll() > 0) {
 				request.scroll(new TimeValue(dsr.getScroll()));
@@ -363,8 +363,8 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 	@Override
 	public void delete(Class<?> documentClass, Object id) {
 		ElasticIndexType elasticIndexType = getIndexType(documentClass);
-		DeleteRequest deleteRequest = new DeleteRequest(elasticIndexType.getIndex())
-				.type(elasticIndexType.getType()).id((String) id);
+		DeleteRequest deleteRequest = new DeleteRequest(elasticIndexType.getIndex()).id((String) id);
+//				.type(elasticIndexType.getType()).id((String) id);
 		try {
 			DeleteResponse delete = client.delete(deleteRequest, RequestOptions.DEFAULT);
 		} catch (IOException e) {

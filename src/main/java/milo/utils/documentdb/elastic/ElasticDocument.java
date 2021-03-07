@@ -7,5 +7,5 @@ import java.lang.annotation.*;
 @Inherited
 public @interface ElasticDocument {
     String index();
-    String type();
+//    String type();
 }
