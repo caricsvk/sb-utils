@@ -367,6 +367,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 //				.type(elasticIndexType.getType()).id((String) id);
 		try {
 			DeleteResponse delete = client.delete(deleteRequest, RequestOptions.DEFAULT);
+			LOG.info("deleted " + id + "; " + delete.toString());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
