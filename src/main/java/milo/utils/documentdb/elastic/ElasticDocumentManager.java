@@ -259,15 +259,15 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 //				dsr.getFilter().replaceAll("-", "\\-")
 			qb = QueryBuilders.matchQuery("_id", dsr.getId());
 		} else if (dsr.getFilter() != null && !dsr.getFilter().isEmpty()) {
-			qb = QueryBuilders.matchQuery("_all", dsr.getFilter());
-		} else {
-			for (Map.Entry<String, EntityFilter> entry : dsr.getFilterParameters().entrySet()) {
-				if (EntityFilterType.WILDCARD.equals(entry.getValue().getEntityFilterType())) {
-					qb = QueryBuilders.matchQuery(entry.getValue().getFieldName(),
-							entry.getValue().getValue().toLowerCase());
-				} else {
-					dsr.getFilterBuilder().filter().add(createPredicates(entry.getValue()));
-				}
+			qb = QueryBuilders.simpleQueryStringQuery(dsr.getFilter());
+		}
+
+		for (Map.Entry<String, EntityFilter> entry : dsr.getFilterParameters().entrySet()) {
+			if (EntityFilterType.WILDCARD.equals(entry.getValue().getEntityFilterType())) {
+				qb = QueryBuilders.matchQuery(entry.getValue().getFieldName(),
+						entry.getValue().getValue().toLowerCase());
+			} else {
+				dsr.getFilterBuilder().filter().add(createPredicates(entry.getValue()));
 			}
 		}
 
