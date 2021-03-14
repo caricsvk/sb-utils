@@ -181,10 +181,16 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 				", id='" + id + '\'' +
 				", scroll=" + scroll +
 				", scrollId='" + scrollId + '\'' +
-				", filterParameters=" + filterParameters +
+				", fields=" + fields +
+				", queryParameters=" + queryParameters +
 				", queryBuilder=" + queryBuilder +
 				", filterBuilder=" + filterBuilder +
-				", filter=" + getFilter() +
+				", offset=" + offset +
+				", limit=" + limit +
+				", order='" + order + '\'' +
+				", orderType=" + orderType +
+				", filter='" + filter + '\'' +
+				", filterParameters=" + filterParameters +
 				'}';
 	}
 }

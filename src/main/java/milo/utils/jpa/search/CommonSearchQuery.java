@@ -11,20 +11,20 @@ public class CommonSearchQuery {
 
 	@QueryParam("offset")
 	@DefaultValue("0")
-	private Integer offset = 0;
+	protected Integer offset = 0;
 	@QueryParam("limit")
 	@DefaultValue("0")
 	@Max(100)
-	private Integer limit = 0;
+	protected Integer limit = 0;
 	@QueryParam("order")
 	@DefaultValue("id")
-	private String order = "id";
+	protected String order = "id";
 	@QueryParam("orderType")
 	@DefaultValue("DESC")
-	private OrderType orderType = OrderType.ASC;
+	protected OrderType orderType = OrderType.ASC;
 	@QueryParam("filter")
 	@DefaultValue("")
-	private String filter = "";
+	protected String filter = "";
 
 	protected Map<String, EntityFilter> filterParameters = new HashMap<>();
 
