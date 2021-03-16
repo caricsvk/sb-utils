@@ -35,7 +35,7 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	private String id = null;
 	private Long scroll;
 	private String scrollId;
-
+	private Boolean trackAccurateCount = false;
 	private List<String> fields;
 	private MultivaluedMap<String, String> queryParameters;
 	private QueryBuilder queryBuilder = null;
@@ -171,6 +171,14 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 			fields = new ArrayList<>();
 		}
 		return fields;
+	}
+
+	public Boolean getTrackAccurateCount() {
+		return trackAccurateCount;
+	}
+
+	public void setTrackAccurateCount(Boolean trackAccurateCount) {
+		this.trackAccurateCount = trackAccurateCount;
 	}
 
 	@Override
