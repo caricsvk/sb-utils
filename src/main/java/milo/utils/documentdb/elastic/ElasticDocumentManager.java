@@ -8,6 +8,7 @@ import milo.utils.jpa.search.EntityFilter;
 import milo.utils.jpa.search.EntityFilterType;
 import milo.utils.jpa.search.OrderType;
 import org.apache.http.HttpHost;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.xml.builders.BooleanQueryBuilder;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -260,7 +261,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 //				dsr.getFilter().replaceAll("-", "\\-")
 			qb = QueryBuilders.matchQuery("_id", dsr.getId());
 		} else if (dsr.getFilter() != null && !dsr.getFilter().isEmpty()) {
-			qb = QueryBuilders.simpleQueryStringQuery(dsr.getFilter());
+			qb = QueryBuilders.queryStringQuery("*" + QueryParser.escape(dsr.getFilter()) + "*");
 		}
 
 		for (Map.Entry<String, EntityFilter> entry : dsr.getFilterParameters().entrySet()) {
