@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -200,5 +201,27 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 				", filter='" + filter + '\'' +
 				", filterParameters=" + filterParameters +
 				'}';
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof DocumentSearchQuery)) return false;
+		DocumentSearchQuery that = (DocumentSearchQuery) o;
+		return Objects.equals(getField(), that.getField()) &&
+				Objects.equals(getOrder(), that.getOrder()) &&
+				Objects.equals(getOrderType(), that.getOrderType()) &&
+				Objects.equals(getId(), that.getId()) &&
+				Objects.equals(getFilter(), that.getFilter()) &&
+				Objects.equals(getLimit(), that.getLimit()) &&
+				Objects.equals(getOffset(), that.getOffset()) &&
+				Objects.equals(getFields(), that.getFields()) &&
+				Objects.equals(getQueryParameters(), that.getQueryParameters());
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(getField(), getOrder(), getOrderType(), getId(), getFilter(), getLimit(), getOffset(),
+				getFields(), getQueryParameters());
 	}
 }

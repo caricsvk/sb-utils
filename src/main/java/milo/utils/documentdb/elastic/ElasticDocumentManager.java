@@ -19,6 +19,7 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
@@ -273,12 +274,15 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			}
 		}
 
-		if (dsr.getScrollId() != null) { // TODO
-//			SearchResponse searchResponse = client.prepareSearchScroll(dsr.getScrollId())
-//					.setScroll(new TimeValue(dsr.getScroll())).execute().actionGet();
-//			dsr.setScrollId(searchResponse.getScrollId());
-//			return searchResponse;
-			return null;
+//		System.out.println("ElasticDocumentManager.search --------- scroll " + dsr.getScrollId());
+		if (dsr.getScrollId() != null) {
+			SearchScrollRequest scrollRequest = new SearchScrollRequest(dsr.getScrollId());
+			scrollRequest.scroll(TimeValue.timeValueSeconds(dsr.getScroll()));
+			SearchResponse searchScrollResponse = client.scroll(scrollRequest, RequestOptions.DEFAULT);
+			if (searchScrollResponse.getHits().getTotalHits().value > 0) {
+				dsr.setScrollId(searchScrollResponse.getScrollId());
+			}
+			return searchScrollResponse;
 		} else {
 
 			if (qb != null) {
@@ -288,7 +292,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			SearchSourceBuilder srb = new SearchSourceBuilder()
 					.query(dsr.getQueryBuilder())
 					.version(Boolean.TRUE)
-					.trackTotalHits(Boolean.TRUE.equals(dsr.getTrackAccurateCount()))
+					.trackTotalHits(Boolean.TRUE.equals(dsr.getTrackAccurateCount()) || dsr.getScroll() != null)
 					.query(dsr.getFilterBuilder());
 
 			if (dsr.getLimit() != null && dsr.getLimit() > 0) {
@@ -308,16 +312,14 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			}
 			if (dsr.getFields() != null && !dsr.getFields().isEmpty()) {
 				srb.fetchSource(false);
-				dsr.getFields().forEach(field -> srb.fetchField(field));
+				dsr.getFields().forEach(srb::fetchField);
 			}
 
 			SearchRequest request = new SearchRequest(elasticIndexType.getIndex())
 					.source(srb);
-//					.types(elasticIndexType.getType());
 
 			if (dsr.getScroll() != null && dsr.getScroll() > 0) {
-				request.scroll(new TimeValue(dsr.getScroll()));
-//				request.setSearchType(SearchType.SCAN);
+				request.scroll(TimeValue.timeValueSeconds(dsr.getScroll()));
 			}
 
 			SearchResponse searchResponse = client.search(request, RequestOptions.DEFAULT);
