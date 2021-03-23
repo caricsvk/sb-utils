@@ -167,6 +167,10 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 		return queryParameters;
 	}
 
+	public String getQueryParameter(String key) {
+		return this.getQueryParameters().getFirst(key);
+	}
+
 	public List<String> getFields() {
 		if (fields == null) {
 			fields = new ArrayList<>();
