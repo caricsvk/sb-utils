@@ -13,6 +13,7 @@ import javax.transaction.Transactional;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,6 +24,7 @@ public abstract class RabbitMqMessageBroker implements MessageBroker {
 	private static final Logger LOG = Logger.getLogger(RabbitMqMessageBroker.class.getName());
 	private List<Connection> receiveConnections = new ArrayList<>();
 	private List<Channel> receiveChannels = new ArrayList<>();
+	private ConcurrentHashMap<String, Integer> consecutiveFailures = new ConcurrentHashMap<>();
 
 	private final String queuesToPurgeOnDeploy;
 
@@ -86,9 +88,11 @@ public abstract class RabbitMqMessageBroker implements MessageBroker {
 				}
 				eventHandler.handle(receivedEvent);
 				channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+				resetConsecutiveFailures(queueName);
 			} catch (Exception e) {
-				LOG.log(Level.WARNING, "caught subscription failure: " + eventType.getSimpleName(), e);
-				if (channel.isOpen()) {
+				Integer failures = incrementConsecutiveFailures(queueName);
+				LOG.log(Level.WARNING, "Consecutive failure #" + failures + " caught: " + eventType.getSimpleName(), e);
+				if (failures >= 3 && channel.isOpen()) {
 					try {
 						channel.abort();
 					} catch (IOException e1) {
@@ -122,6 +126,16 @@ public abstract class RabbitMqMessageBroker implements MessageBroker {
 			}
 		});
 		System.out.println("MessageBroker.closeConnections ========================= " + connectionChannels);
+	}
+
+	private Integer incrementConsecutiveFailures(String key) {
+		Integer failures = consecutiveFailures.getOrDefault(key, 0) + 1;
+		consecutiveFailures.put(key, failures);
+		return failures;
+	}
+
+	private void resetConsecutiveFailures(String key) {
+		consecutiveFailures.put(key, 0);
 	}
 
 	protected abstract String serialize(Event event);
