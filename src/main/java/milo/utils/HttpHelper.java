@@ -1,5 +1,7 @@
 package milo.utils;
 
+import org.brotli.dec.BrotliInputStream;
+
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -66,8 +68,19 @@ public class HttpHelper {
 		urlCon.connect();
 
 		StringBuffer tmp = new StringBuffer();
-		InputStream inputStream = ((urlCon.getContentEncoding() != null) && urlCon.getContentEncoding().equals("gzip"))
-				? new GZIPInputStream(urlCon.getInputStream()) : urlCon.getInputStream();
+		InputStream inputStream;
+		switch (urlCon.getContentEncoding()) {
+			case "gzip":
+				inputStream = new GZIPInputStream(urlCon.getInputStream());
+				break;
+			case "br":
+				inputStream = new BrotliInputStream(urlCon.getInputStream());
+				break;
+			default:
+				inputStream = urlCon.getInputStream();
+		}
+
+
 		String charset = urlCon.getContentType();
 
 		if (charset == null) {

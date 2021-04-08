@@ -23,6 +23,13 @@
 			<artifactId>jakarta.xml.bind-api</artifactId>
 			<version>2.3.3</version>
 		</dependency>
+
+		<dependency>
+			<groupId>org.brotli</groupId>
+			<artifactId>dec</artifactId>
+			<version>0.1.2</version>
+		</dependency>
+
 	</dependencies>
 
 	<properties>
