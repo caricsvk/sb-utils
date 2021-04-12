@@ -184,8 +184,10 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		}
 		try {
 			GetResponse response = getResponse(id, elasticIndexType);
-
 			String json = response.getSourceAsString();
+			if (json == null) {
+				return null;
+			}
 			T object = getJsonSerializer().deserialize(json, documentClass);
 			object.setId(response.getId());
 			return object;
