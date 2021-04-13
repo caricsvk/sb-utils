@@ -26,18 +26,18 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 
 	private static final Logger LOG = Logger.getLogger(DocumentSearchQuery.class.getName());
 
-	@QueryParam("field")
-	@DefaultValue("_all")
-	private String field;
 	@QueryParam("order")
 	@DefaultValue("")
 	private String order;
 	@QueryParam("id")
 	private String id = null;
+	@QueryParam("fields")
+	private List<String> fields;
+	@QueryParam("sourceFields")
+	private List<String> sourceFields;
 	private Long scroll;
 	private String scrollId;
 	private Boolean trackAccurateCount = false;
-	private List<String> fields;
 	private MultivaluedMap<String, String> queryParameters;
 	private QueryBuilder queryBuilder = null;
 	private BoolQueryBuilder filterBuilder = null;
@@ -53,7 +53,8 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 		knownKeys.add("order");
 		knownKeys.add("orderType");
 		knownKeys.add("filter");
-		knownKeys.add("field");
+		knownKeys.add("fields");
+		knownKeys.add("sourceFields");
 
 		queryParameters = ui.getQueryParameters();
 		List<EntityFilterType> filterTypes = Arrays.asList(EntityFilterType.values());
@@ -117,16 +118,27 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	public void setFields(List<String> fields) {
 		this.fields = fields;
 	}
+
+	public List<String> getFields() {
+		if (fields == null) {
+			fields = new ArrayList<>();
+		}
+		return fields;
+	}
+
+	public void setSourceFields(List<String> sourceFields) {
+		this.sourceFields = sourceFields;
+	}
+
+	public List<String> getSourceFields() {
+		if (sourceFields == null) {
+			sourceFields = new ArrayList<>();
+		}
+		return sourceFields;
+	}
+
 	public void setScrollId(String scrollId) {
 		this.scrollId = scrollId;
-	}
-
-	public String getField() {
-		return field;
-	}
-
-	public void setField(String field) {
-		this.field = field;
 	}
 
 	@Override
@@ -171,13 +183,6 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 		return this.getQueryParameters().getFirst(key);
 	}
 
-	public List<String> getFields() {
-		if (fields == null) {
-			fields = new ArrayList<>();
-		}
-		return fields;
-	}
-
 	public Boolean getTrackAccurateCount() {
 		return trackAccurateCount;
 	}
@@ -189,12 +194,12 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	@Override
 	public String toString() {
 		return "DocumentSearchQuery{" +
-				"field='" + field + '\'' +
-				", order='" + order + '\'' +
+				"order='" + order + '\'' +
 				", id='" + id + '\'' +
 				", scroll=" + scroll +
 				", scrollId='" + scrollId + '\'' +
 				", fields=" + fields +
+				", sourceFields=" + sourceFields +
 				", queryParameters=" + queryParameters +
 				", queryBuilder=" + queryBuilder +
 				", filterBuilder=" + filterBuilder +
@@ -212,8 +217,7 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 		if (this == o) return true;
 		if (!(o instanceof DocumentSearchQuery)) return false;
 		DocumentSearchQuery that = (DocumentSearchQuery) o;
-		return Objects.equals(getField(), that.getField()) &&
-				Objects.equals(getOrder(), that.getOrder()) &&
+		return Objects.equals(getOrder(), that.getOrder()) &&
 				Objects.equals(getOrderType(), that.getOrderType()) &&
 				Objects.equals(getId(), that.getId()) &&
 				Objects.equals(getFilter(), that.getFilter()) &&
@@ -225,7 +229,7 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(getField(), getOrder(), getOrderType(), getId(), getFilter(), getLimit(), getOffset(),
+		return Objects.hash(getOrder(), getOrderType(), getId(), getFilter(), getLimit(), getOffset(),
 				getFields(), getQueryParameters());
 	}
 }

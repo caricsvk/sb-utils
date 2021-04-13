@@ -7,6 +7,7 @@ import milo.utils.documentdb.DocumentSearchQuery;
 import milo.utils.jpa.search.EntityFilter;
 import milo.utils.jpa.search.EntityFilterType;
 import milo.utils.jpa.search.OrderType;
+import milo.utils.rest.jaxbadapters.ZonedDateTimeToLong;
 import org.apache.http.HttpHost;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.xml.builders.BooleanQueryBuilder;
@@ -49,7 +50,11 @@ import java.io.IOException;
 import java.lang.annotation.AnnotationFormatError;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -316,6 +321,9 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 				srb.fetchSource(false);
 				dsr.getFields().forEach(srb::fetchField);
 			}
+			if (dsr.getSourceFields() != null && !dsr.getSourceFields().isEmpty()) {
+				srb.fetchSource(dsr.getSourceFields().toArray(new String[]{}), new String[] {"user"});
+			}
 
 			SearchRequest request = new SearchRequest(elasticIndexType.getIndex())
 					.source(srb);
@@ -423,11 +431,20 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			Field field = documentClass.getDeclaredField(fieldName);
 			field.setAccessible(true);
 			Object value = fields.get(fieldName) != null ? fields.get(fieldName).getValue() : null;
-			if (value != null && BigDecimal.class.isAssignableFrom(field.getType())) {
+			if (value == null) {
+				continue;
+			}
+			if (BigDecimal.class.isAssignableFrom(field.getType())) {
 				value = BigDecimal.valueOf(Long.class.isAssignableFrom(value.getClass()) ? (Long) value :
 						Double.class.isAssignableFrom(value.getClass()) ? (Double) value : (Integer) value);
-			} else if (value != null && field.getType().isEnum()) {
+			} else if (field.getType().isEnum()) {
 				value = Enum.valueOf(field.getType().asSubclass(Enum.class), (String) value);
+			} else if (List.class.isAssignableFrom(field.getType())) {
+				List<Object> listValue = field.get(object) == null ? new ArrayList() : (List) field.get(object);
+				listValue.add(value);
+				value = listValue;
+			} else if (ZonedDateTime.class.isAssignableFrom(field.getType())) {
+				value = ZonedDateTime.ofInstant(Instant.ofEpochMilli(((Double) value).longValue()), ZoneId.systemDefault());
 			}
 			field.set(object, value);
 		}
