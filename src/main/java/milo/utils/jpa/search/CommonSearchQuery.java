@@ -15,7 +15,7 @@ public class CommonSearchQuery {
 	@QueryParam("limit")
 	@DefaultValue("0")
 	@Max(100)
-	protected Integer limit = 0;
+	protected Integer limit = 10;
 	@QueryParam("order")
 	@DefaultValue("id")
 	protected String order = "id";

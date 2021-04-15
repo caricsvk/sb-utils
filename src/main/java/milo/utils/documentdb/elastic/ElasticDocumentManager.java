@@ -247,6 +247,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 	@Override
 	public Long findCount(Class<?> documentClass, DocumentSearchQuery dsr) {
 		dsr.setLimit(0);
+		dsr.setOrder(null);
 		dsr.setTrackAccurateCount(Boolean.TRUE);
 		try {
 			return search(getIndexType(documentClass), dsr).getHits().getTotalHits().value;
@@ -302,7 +303,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 					.trackTotalHits(Boolean.TRUE.equals(dsr.getTrackAccurateCount()) || dsr.getScroll() != null)
 					.query(dsr.getFilterBuilder());
 
-			if (dsr.getLimit() != null && dsr.getLimit() > 0) {
+			if (dsr.getLimit() != null) {
 				srb.size(dsr.getLimit());
 			}
 			if (dsr.getOffset() != null && dsr.getOffset() > 0) {
