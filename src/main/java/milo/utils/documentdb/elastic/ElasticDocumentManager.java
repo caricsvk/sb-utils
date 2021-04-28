@@ -345,14 +345,12 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		switch (entityFilter.getEntityFilterType()) {
 			case EXACT_NOT:
 			case EXACT:
-				List<String> lowerCaseValues = entityFilter.getValues().stream()
-						.map(String::toLowerCase).collect(Collectors.toList());
 				QueryBuilder query;
-				if (lowerCaseValues.size() == 1) {
-					query = QueryBuilders.matchPhraseQuery(entityFilter.getFieldName(), lowerCaseValues.get(0));
+				if (entityFilter.getValues().size() == 1) {
+					query = QueryBuilders.matchPhraseQuery(entityFilter.getFieldName(), entityFilter.getValues().get(0));
 				} else {
 					BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
-					lowerCaseValues.forEach(value -> boolQuery.should().add(
+					entityFilter.getValues().forEach(value -> boolQuery.should().add(
 							QueryBuilders.matchPhraseQuery(entityFilter.getFieldName(), value)
 					));
 					query = boolQuery;
