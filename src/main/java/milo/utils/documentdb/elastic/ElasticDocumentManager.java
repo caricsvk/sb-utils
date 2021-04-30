@@ -32,6 +32,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
+import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.SpanTermQueryBuilder;
@@ -274,12 +275,13 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		}
 
 		for (Map.Entry<String, EntityFilter> entry : dsr.getFilterParameters().entrySet()) {
-			if (EntityFilterType.WILDCARD.equals(entry.getValue().getEntityFilterType())) {
-				qb = QueryBuilders.matchQuery(entry.getValue().getFieldName(),
-						entry.getValue().getValue().toLowerCase());
-			} else {
+			// TODO should be filter parameter be boosting result? (must vs filter boosts results)
+//			if (EntityFilterType.WILDCARD.equals(entry.getValue().getEntityFilterType())) {
+//				qb = QueryBuilders.matchQuery(entry.getValue().getFieldName(),
+//						entry.getValue().getValue().toLowerCase());
+//			} else {
 				dsr.getFilterBuilder().filter().add(createPredicates(entry.getValue()));
-			}
+//			}
 		}
 
 //		System.out.println("ElasticDocumentManager.search --------- scroll " + dsr.getScrollId());
@@ -353,7 +355,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 					entityFilter.getValues().forEach(value -> boolQuery.should().add(
 							QueryBuilders.matchPhraseQuery(entityFilter.getFieldName(), value)
 					));
-					query = boolQuery;
+					query = boolQuery.minimumShouldMatch(1);
 				}
 				return EntityFilterType.EXACT.equals(entityFilter.getEntityFilterType()) ? query :
 						QueryBuilders.boolQuery().mustNot(query);
@@ -364,7 +366,17 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			case MAX:
 				return QueryBuilders.rangeQuery(entityFilter.getFieldName()).to(entityFilter.getFirstValue());
 			case WILDCARD:
-				return QueryBuilders.matchQuery(entityFilter.getFieldName(), entityFilter.getValue().toLowerCase());
+				if (entityFilter.getValues().size() == 1) {
+					return QueryBuilders.matchQuery(
+							entityFilter.getFieldName(), entityFilter.getValue().toLowerCase()
+					).operator(Operator.AND);
+				} else {
+					BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+					entityFilter.getValues().forEach(value -> boolQuery.should().add(
+							QueryBuilders.matchQuery(entityFilter.getFieldName(), value.toLowerCase()).operator(Operator.AND)
+					));
+					return boolQuery.minimumShouldMatch(1);
+				}
 			case MIN_MAX:
 				return QueryBuilders.rangeQuery(entityFilter.getFieldName())
 							.from(entityFilter.getFirstValue())
