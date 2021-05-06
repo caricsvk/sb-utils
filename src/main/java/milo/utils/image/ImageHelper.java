@@ -90,7 +90,7 @@ public class ImageHelper {
 			}
 			image = create(inputStream, imgName, urlConnection.getContentType(), url);
 		} catch (Exception ex) {
-			LOG.log(Level.SEVERE, ex.getMessage(), ex);
+			LOG.log(Level.SEVERE, "caught " + ex.getMessage(), ex);
 			return null;
 		} finally {
 			if (urlConnection != null && urlConnection instanceof HttpURLConnection) {

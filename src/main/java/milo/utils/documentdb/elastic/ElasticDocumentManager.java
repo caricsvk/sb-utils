@@ -67,14 +67,11 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 
 	private static final Logger LOG = Logger.getLogger(ElasticDocumentManager.class.getName());
 
-	private static final String ALL = "_all";
 	private RestHighLevelClient client;
-
-	protected abstract String getElasticCluster();
 
 	protected abstract String getElasticHost();
 
-	protected abstract int getElasticPort();
+	protected abstract String getElasticPort();
 
 	protected abstract String getLocaleRegion();
 
@@ -82,9 +79,13 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 
 	@PostConstruct
 	public void init() {
-		client = new RestHighLevelClient(RestClient.builder(
-				new HttpHost(getElasticHost(), getElasticPort(), "http")
-		));
+		String[] hosts = getElasticHost().split(",");
+		String[] ports = getElasticPort().split(",");
+		HttpHost[] httpHosts = new HttpHost[hosts.length];
+		for (int i = 0; i < hosts.length; i++) {
+			httpHosts[i] = new HttpHost(hosts[i], Integer.valueOf(ports[i]), "http");
+		}
+		client = new RestHighLevelClient(RestClient.builder(httpHosts));
 	}
 
 	@PreDestroy
