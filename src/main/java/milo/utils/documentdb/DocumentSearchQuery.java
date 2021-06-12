@@ -46,6 +46,10 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	}
 
 	public DocumentSearchQuery(@Context UriInfo ui) {
+		this(ui.getQueryParameters());
+	}
+
+	public DocumentSearchQuery(MultivaluedMap<String, String> queryParameters) {
 		List<String> knownKeys = new ArrayList<>();
 
 		knownKeys.add("offset");
@@ -56,7 +60,7 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 		knownKeys.add("fields");
 		knownKeys.add("sourceFields");
 
-		queryParameters = ui.getQueryParameters();
+		this.queryParameters = queryParameters;
 		List<EntityFilterType> filterTypes = Arrays.asList(EntityFilterType.values());
 
 		for (Map.Entry<String, List<String>> param : queryParameters.entrySet()) {
