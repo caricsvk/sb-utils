@@ -31,6 +31,7 @@ import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.ExistsQueryBuilder;
 import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -361,7 +362,14 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 				return EntityFilterType.EXACT.equals(entityFilter.getEntityFilterType()) ? query :
 						QueryBuilders.boolQuery().mustNot(query);
 			case EMPTY:
-				return QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(entityFilter.getFieldName()));
+				boolean notEmpty = "false".equalsIgnoreCase(entityFilter.getValue());
+				ExistsQueryBuilder existsQueryBuilder = QueryBuilders.existsQuery(entityFilter.getFieldName());
+				if (notEmpty) {
+					return QueryBuilders.boolQuery().must(existsQueryBuilder);
+				} else {
+					return QueryBuilders.boolQuery().mustNot(existsQueryBuilder);
+				}
+
 			case MIN:
 				return QueryBuilders.rangeQuery(entityFilter.getFieldName()).from(entityFilter.getFirstValue());
 			case MAX:
