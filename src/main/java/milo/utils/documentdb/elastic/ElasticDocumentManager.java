@@ -338,7 +338,10 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			}
 
 			SearchResponse searchResponse = client.search(request, RequestOptions.DEFAULT);
-			System.out.println("ElasticDocumentManager.search: " + srb.toString());
+			// print by DSR request or every 5th
+			if (!Boolean.FALSE.equals(dsr.getLog()) && (Boolean.TRUE.equals(dsr.getLog()) || Math.random() < 0.2)) {
+				LOG.info("ElasticDocumentManager.search: " + srb);
+			}
 			dsr.setScrollId(searchResponse.getScrollId()); //in case of scrolling
 
 			return searchResponse;

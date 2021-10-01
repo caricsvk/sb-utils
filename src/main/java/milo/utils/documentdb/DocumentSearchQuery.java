@@ -13,7 +13,6 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriInfo;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,6 +30,8 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	private String order;
 	@QueryParam("id")
 	private String id = null;
+	@QueryParam("log")
+	private Boolean log = null;
 	@QueryParam("fields")
 	private List<String> fields;
 	@QueryParam("sourceFields")
@@ -52,6 +53,7 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	public DocumentSearchQuery(MultivaluedMap<String, String> queryParameters) {
 		List<String> knownKeys = new ArrayList<>();
 
+		knownKeys.add("print");
 		knownKeys.add("offset");
 		knownKeys.add("limit");
 		knownKeys.add("order");
@@ -139,6 +141,14 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 			sourceFields = new ArrayList<>();
 		}
 		return sourceFields;
+	}
+
+	public Boolean getLog() {
+		return log;
+	}
+
+	public void setLog(Boolean log) {
+		this.log = log;
 	}
 
 	public void setScrollId(String scrollId) {
