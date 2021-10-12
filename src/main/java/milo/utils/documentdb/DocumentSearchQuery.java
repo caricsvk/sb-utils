@@ -21,7 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class DocumentSearchQuery extends CommonSearchQuery {
+public class DocumentSearchQuery extends CommonSearchQuery implements Cloneable {
 
 	private static final Logger LOG = Logger.getLogger(DocumentSearchQuery.class.getName());
 
@@ -245,5 +245,15 @@ public class DocumentSearchQuery extends CommonSearchQuery {
 	public int hashCode() {
 		return Objects.hash(getOrder(), getOrderType(), getId(), getFilter(), getLimit(), getOffset(),
 				getFields(), getQueryParameters());
+	}
+
+	@Override
+	public DocumentSearchQuery clone() {
+		try {
+			return (DocumentSearchQuery) super.clone();
+		} catch (CloneNotSupportedException e) {
+			LOG.log(Level.SEVERE, "clone caught " + e.getMessage(), e);
+			return null;
+		}
 	}
 }
