@@ -303,7 +303,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 
 			SearchSourceBuilder srb = new SearchSourceBuilder()
 					.query(dsr.getQueryBuilder())
-					.version(Boolean.TRUE)
+					.version(Boolean.TRUE) // TODO ??
 					.trackTotalHits(Boolean.TRUE.equals(dsr.getTrackAccurateCount()) || dsr.getScroll() != null)
 					.query(dsr.getFilterBuilder());
 
@@ -348,7 +348,7 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		}
 	}
 
-	private QueryBuilder createPredicates(EntityFilter entityFilter) {
+	public QueryBuilder createPredicates(EntityFilter entityFilter) {
 		switch (entityFilter.getEntityFilterType()) {
 			case EXACT_NOT:
 			case EXACT:
@@ -415,18 +415,28 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 		return aggregations(documentClass, aab, null);
 	}
 
-	public <T extends DocumentEntity> Aggregations aggregations(Class<T> documentClass, AbstractAggregationBuilder aab,
-	                                                            QueryBuilder queryBuilder) {
-//		ElasticIndexType elasticIndexType = getIndexType(documentClass);
-//		SearchRequestBuilder srb = client.prepareSearch(elasticIndexType.getIndex());
-//		srb.setSize(0);
-//		srb.setTypes(elasticIndexType.getType());
-//		srb.setSearchType(SearchType.COUNT);
-//		srb.addAggregation(aab);
-//		srb.setQuery(queryBuilder);
-////		System.out.println("ElasticDocumentManager.aggregations ---- " + srb.toString());
-//		return srb.execute().actionGet().getAggregations();
-		return null; // TODO
+	public <T extends DocumentEntity> Aggregations aggregations(
+			Class<T> documentClass,
+			AbstractAggregationBuilder aab,
+			QueryBuilder queryBuilder
+	) {
+		ElasticIndexType elasticIndexType = getIndexType(documentClass);
+		SearchSourceBuilder srb = new SearchSourceBuilder()
+				.size(0)
+				.trackTotalHits(Boolean.FALSE)
+				.query(queryBuilder)
+				.aggregation(aab);
+
+//		System.out.println("ElasticDocumentManager.aggregations ---- " + srb);
+
+		try {
+			SearchRequest request = new SearchRequest(elasticIndexType.getIndex()).source(srb);
+			SearchResponse searchResponse = client.search(request, RequestOptions.DEFAULT);
+			return searchResponse.getAggregations();
+		} catch (IOException e) {
+			LOG.log(Level.SEVERE, "elasticsearch aggregations caught exception: " + e.getMessage(), e);
+			return null;
+		}
 	}
 
 //	public <T extends DocumentEntity> List<Map<String, SearchHitField>> getFields(Class<T> lookInClass,
