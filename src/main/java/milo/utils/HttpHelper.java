@@ -17,7 +17,10 @@ import java.net.ProtocolException;
 import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -54,20 +57,21 @@ public class HttpHelper {
 			"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36",
 	};
 
-	public static String download(String url) throws IOException, MetaRefreshOccurred {
+	public static PageResponse download(String url) throws IOException, MetaRefreshOccurred {
 		return download(buildUrlConnection(url));
 	}
 
-	public static String download(String url, String cookies) throws IOException, MetaRefreshOccurred {
+	public static PageResponse download(String url, String cookies) throws IOException, MetaRefreshOccurred {
 		HttpURLConnection httpURLConnection = buildUrlConnection(url);
 		httpURLConnection.setRequestProperty("Cookie", cookies);
 		return download(httpURLConnection);
 	}
 
-	public static String download(HttpURLConnection urlCon) throws IOException, MetaRefreshOccurred {
+	public static PageResponse download(HttpURLConnection urlCon) throws IOException, MetaRefreshOccurred {
 
 		urlCon.connect();
 
+		Map<String, List<String>> headerFields = new HashMap<>(urlCon.getHeaderFields());
 		String cookies = extractCookiesFromConnection(urlCon);
 
 		InputStream inputStream;
@@ -122,7 +126,8 @@ public class HttpHelper {
 			}
 		}
 
-		return result;
+		headerFields.put("$cookies", Collections.singletonList(cookies));
+		return new PageResponse(headerFields, result);
 	}
 
 	public static String findMetaRefreshUrl(String content) {
@@ -254,6 +259,35 @@ public class HttpHelper {
 			LOG.warning("caught cookie parsing exception " + ex.getMessage());
 		}
 		return cookies.toString();
+	}
+
+	public static class PageResponse {
+		private String content;
+		private Map<String, List<String>> headers;
+
+		public PageResponse() {
+		}
+
+		public PageResponse(Map<String, List<String>> headerFields, String content) {
+			setHeaders(headerFields);
+			setContent(content);
+		}
+
+		public String getContent() {
+			return content;
+		}
+
+		public void setContent(String content) {
+			this.content = content;
+		}
+
+		public Map<String, List<String>> getHeaders() {
+			return headers;
+		}
+
+		public void setHeaders(Map<String, List<String>> headers) {
+			this.headers = headers;
+		}
 	}
 
 }

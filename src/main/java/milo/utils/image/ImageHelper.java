@@ -42,7 +42,8 @@ public class ImageHelper {
 	public static List<ImageInfo> findSimilarByUrl(String url) {
 		List<ImageInfo> images = new ArrayList<>();
 		try {
-			String response = HttpHelper.download("https://images.google.com/searchbyimage?image_url=" + URLEncoder.encode(url, "UTF-8"));
+			String response = HttpHelper.download("https://images.google.com/searchbyimage?image_url=" +
+					URLEncoder.encode(url, "UTF-8")).getContent();
 			Matcher urlMatcher = Pattern.compile("th _.+?<a.+?imgurl=(.*?)&amp;imgrefurl", Pattern.DOTALL)
 					.matcher(response);
 			Matcher resolutionMatcher = Pattern
