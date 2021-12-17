@@ -105,6 +105,9 @@ public class HttpHelper {
 			in.close();
 		}
 
+		Map<String, List<String>> headerFields = new HashMap<>(urlCon.getHeaderFields());
+		String cookies = extractCookiesFromConnection(urlCon);
+
 		if (urlCon instanceof HttpURLConnection) {
 			urlCon.disconnect();
 		}
