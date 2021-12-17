@@ -105,7 +105,13 @@ public class HttpHelper {
 			in.close();
 		}
 
-		Map<String, List<String>> headerFields = new HashMap<>(urlCon.getHeaderFields());
+		Map<String, List<String>> headerFields;
+		try {
+			headerFields = new HashMap<>(urlCon.getHeaderFields());
+		} catch (Exception ex) {
+			LOG.warning("caught urlCon.getHeaderFields() " + ex.getMessage());
+			headerFields = new HashMap<>();
+		}
 		String cookies = extractCookiesFromConnection(urlCon);
 
 		if (urlCon instanceof HttpURLConnection) {
