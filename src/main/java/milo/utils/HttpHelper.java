@@ -25,6 +25,7 @@ import java.util.Random;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 public class HttpHelper {
@@ -255,7 +256,13 @@ public class HttpHelper {
 	public static String extractCookiesFromConnection(HttpURLConnection urlCon) {
 		StringBuilder cookies = new StringBuilder();
 		try {
-			for (String cookieString : urlCon.getHeaderFields().get("Set-Cookie")) {
+			Map<String, List<String>> headerFields = urlCon.getHeaderFields();
+			List<String> setCookie = (headerFields != null && headerFields.containsKey("Set-Cookie") ?
+					headerFields.get("Set-Cookie") : Collections.emptyList());
+			setCookie = setCookie.stream().filter(cookieItem -> cookieItem != null && !cookieItem.isEmpty())
+					.collect(Collectors.toList());
+
+			for (String cookieString : setCookie) {
 				List<HttpCookie> cookieList = HttpCookie.parse(cookieString);
 				for (HttpCookie cookie : cookieList) {
 					if (cookies.length() > 0) {
