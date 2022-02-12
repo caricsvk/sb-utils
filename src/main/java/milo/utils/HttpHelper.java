@@ -72,9 +72,6 @@ public class HttpHelper {
 
 		urlCon.connect();
 
-		Map<String, List<String>> headerFields = new HashMap<>(urlCon.getHeaderFields());
-		String cookies = extractCookiesFromConnection(urlCon);
-
 		InputStream inputStream;
 		String encoding = urlCon.getContentEncoding() == null ? "" : urlCon.getContentEncoding();
 		switch (encoding) {
