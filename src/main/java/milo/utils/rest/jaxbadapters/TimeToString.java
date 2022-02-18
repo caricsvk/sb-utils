@@ -15,7 +15,7 @@ public class TimeToString extends XmlAdapter<String, Time> {
 		if (time != null && time.length() == 5) {
 			time += ":00";
 		}
-		return Time.valueOf(time);
+		return time == null || time.isEmpty() ? null : Time.valueOf(time);
 	}
 
 }
