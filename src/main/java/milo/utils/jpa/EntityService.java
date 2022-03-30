@@ -204,7 +204,7 @@ public abstract class EntityService<E, ID> {
 		// join predicates
 		if (orPredicates.size() > 0 && andPredicates.size() > 0) {
 			cq.where(
-					cb.or(
+					cb.and(
 							cb.or(orPredicates.toArray(new Predicate[0])),
 							cb.and(andPredicates.toArray(new Predicate[0]))
 					)
