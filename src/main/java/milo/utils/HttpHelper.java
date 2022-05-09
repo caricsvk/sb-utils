@@ -69,72 +69,77 @@ public class HttpHelper {
 	}
 
 	public static PageResponse download(HttpURLConnection urlCon) throws IOException, MetaRefreshOccurred {
-
-		urlCon.connect();
-
-		InputStream inputStream;
-		String encoding = urlCon.getContentEncoding() == null ? "" : urlCon.getContentEncoding();
-		switch (encoding) {
-			case "gzip":
-				inputStream = new GZIPInputStream(urlCon.getInputStream());
-				break;
-			case "br":
-				inputStream = new BrotliInputStream(urlCon.getInputStream());
-				break;
-			default:
-				inputStream = urlCon.getInputStream();
-		}
-
-		String charset = urlCon.getContentType();
-
-		if (charset == null) {
-			charset = "utf-8";
-		} else {
-			String[] parts = charset.split("harset=");
-			charset = (parts.length > 1) ? parts[1].trim() : "utf-8";
-		}
-
-		StringBuffer tmp = new StringBuffer();
-		try (BufferedReader in = new BufferedReader(new InputStreamReader(inputStream, Charset.forName(charset)))) {
-			String line;
-			while ((line = in.readLine()) != null) {
-				tmp.append(line);
-			}
-			in.close();
-		}
-
-		Map<String, List<String>> headerFields;
 		try {
-			headerFields = new HashMap<>(urlCon.getHeaderFields());
-		} catch (Exception ex) {
-			LOG.warning("caught urlCon.getHeaderFields() " + ex.getMessage());
-			headerFields = new HashMap<>();
-		}
-		String cookies = extractCookiesFromConnection(urlCon);
+			urlCon.connect();
 
-		if (urlCon instanceof HttpURLConnection) {
-			urlCon.disconnect();
-		}
-		String result = String.valueOf(tmp);
-		String metaRefreshUrl = findMetaRefreshUrl(result);
-		if (metaRefreshUrl != null && !metaRefreshUrl.isEmpty()) {
-			if (metaRefreshUrl.startsWith("/")) {
-				metaRefreshUrl = urlCon.getURL().getProtocol() + "://" + urlCon.getURL().getHost() + metaRefreshUrl;
+			InputStream inputStream;
+			String encoding = urlCon.getContentEncoding() == null ? "" : urlCon.getContentEncoding();
+			switch (encoding) {
+				case "gzip":
+					inputStream = new GZIPInputStream(urlCon.getInputStream());
+					break;
+				case "br":
+					inputStream = new BrotliInputStream(urlCon.getInputStream());
+					break;
+				default:
+					inputStream = urlCon.getInputStream();
 			}
-			throw new MetaRefreshOccurred(metaRefreshUrl);
-		}
 
-		// allow redirect from http to https
-		int responseCode = urlCon.getResponseCode();
-		if (responseCode == 301 || responseCode == 302) {
-			String newUrlString = urlCon.getHeaderField("Location");
-			if (newUrlString.replace("https", "http").equals(urlCon.getURL().toString())) {
-				return download(newUrlString, cookies);
+			String charset = urlCon.getContentType();
+
+			if (charset == null) {
+				charset = "utf-8";
+			} else {
+				String[] parts = charset.split("harset=");
+				charset = (parts.length > 1) ? parts[1].trim() : "utf-8";
+			}
+
+			StringBuffer tmp = new StringBuffer();
+			try (BufferedReader in = new BufferedReader(new InputStreamReader(inputStream, Charset.forName(charset)))) {
+				String line;
+				while ((line = in.readLine()) != null) {
+					tmp.append(line);
+				}
+				in.close();
+			}
+
+			Map<String, List<String>> headerFields;
+			try {
+				headerFields = new HashMap<>(urlCon.getHeaderFields());
+			} catch (Exception ex) {
+				LOG.warning("caught urlCon.getHeaderFields() " + ex.getMessage());
+				headerFields = new HashMap<>();
+			}
+			String cookies = extractCookiesFromConnection(urlCon);
+
+			if (urlCon instanceof HttpURLConnection) {
+				urlCon.disconnect();
+			}
+			String result = String.valueOf(tmp);
+			String metaRefreshUrl = findMetaRefreshUrl(result);
+			if (metaRefreshUrl != null && !metaRefreshUrl.isEmpty()) {
+				if (metaRefreshUrl.startsWith("/")) {
+					metaRefreshUrl = urlCon.getURL().getProtocol() + "://" + urlCon.getURL().getHost() + metaRefreshUrl;
+				}
+				throw new MetaRefreshOccurred(metaRefreshUrl);
+			}
+
+			// allow redirect from http to https
+			int responseCode = urlCon.getResponseCode();
+			if (responseCode == 301 || responseCode == 302) {
+				String newUrlString = urlCon.getHeaderField("Location");
+				if (newUrlString.replace("https", "http").equals(urlCon.getURL().toString())) {
+					return download(newUrlString, cookies);
+				}
+			}
+
+			headerFields.put("$cookies", Collections.singletonList(cookies));
+			return new PageResponse(headerFields, result);
+		} finally {
+			if (urlCon instanceof HttpURLConnection) {
+				urlCon.disconnect();
 			}
 		}
-
-		headerFields.put("$cookies", Collections.singletonList(cookies));
-		return new PageResponse(headerFields, result);
 	}
 
 	public static String findMetaRefreshUrl(String content) {
