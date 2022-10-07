@@ -1,4 +1,4 @@
-package milo.utils;
+package milo.utils.rest;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.RedirectionException;
