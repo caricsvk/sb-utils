@@ -6,6 +6,7 @@ import milo.utils.mail.MailBoxValidator;
 import javax.persistence.NoResultException;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
+import javax.validation.Valid;
 import javax.ws.rs.NotAuthorizedException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -23,7 +24,7 @@ public abstract class AuthService<T extends AuthUser> extends EntityService<T, L
 	}
 
 	protected abstract AuthSessionsService getSessionsService();
-	protected abstract T newUser();
+	protected abstract T createNewUser();
 	protected abstract void sendPasswordRecovery(String email, String password);
 	protected abstract boolean sendRegistrationConfirmation(
 			String email, String password, String confirmationUUID, boolean subscribing
@@ -104,12 +105,14 @@ public abstract class AuthService<T extends AuthUser> extends EntityService<T, L
 		try { // search for existing user
 			return findByEmail(email);
 		} catch (NoResultException e) {
-			return newUser();
+			T newUser = createNewUser();
+			newUser.setEmail(email);
+			return newUser;
 		}
 	}
 
 	@Transactional
-	public T register(T user, boolean subscribing) {
+	public T register(@Valid T user, boolean subscribing) {
 		if (Boolean.FALSE.equals(MailBoxValidator.verify(user.getEmail()))) { // creating user but not sending email
 			user.setConfirmationStatus(AuthUser.ConfirmationStatusType.EMAIL_VERIFICATION_FAILED);
 		} else {
