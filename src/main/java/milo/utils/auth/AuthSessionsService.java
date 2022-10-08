@@ -11,7 +11,6 @@ public abstract class AuthSessionsService<T extends AuthSession, U extends AuthU
 		super(entityClass, Long.class);
 	}
 
-	protected abstract AuthService getAuthService();
 	public abstract AuthSession create(U user);
 
 	@Override @Transactional
