@@ -23,17 +23,17 @@ public abstract class AuthService<T extends AuthUser> extends EntityService<T, L
 		super(entityClass, Long.class);
 	}
 
-	protected abstract AuthSessionsService getSessionsService();
+	protected abstract AuthSessionsService<AuthSession<T>, T> getSessionsService();
 	protected abstract T createNewUser();
 	protected abstract void sendPasswordRecovery(String email, String password);
 	protected abstract boolean sendRegistrationConfirmation(
 			String email, String password, String confirmationUUID, boolean subscribing
 	);
 
-	public AuthSession getLoggedSession(HttpSession httpSession) {
+	public AuthSession<T> getLoggedSession(HttpSession httpSession) {
 		try {
-			AuthSession userSession = (AuthSession) httpSession.getAttribute(userSessionKey);
-			AuthSession session = getSessionsService().find(userSession.getId());
+			AuthSession<T> userSession = (AuthSession<T>) httpSession.getAttribute(userSessionKey);
+			AuthSession<T> session = getSessionsService().find(userSession.getId());
 			if (session != null) {
 				return session;
 			}
@@ -44,7 +44,7 @@ public abstract class AuthService<T extends AuthUser> extends EntityService<T, L
 	}
 
 	public T getLoggedUser(HttpSession httpSession) {
-		AuthSession loggedSession = getLoggedSession(httpSession);
+		AuthSession<T> loggedSession = getLoggedSession(httpSession);
 		return this.find(loggedSession.getUser().getId());
 	}
 

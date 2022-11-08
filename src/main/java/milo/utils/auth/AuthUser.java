@@ -145,10 +145,6 @@ public abstract class AuthUser implements Serializable {
 		return passwordHashInput.equals(this.password) || passwordHashInput.equals(this.passwordRecovery);
 	}
 
-	public boolean isDemoUser() {
-		return getEmail() == null || getEmail().endsWith("@company.corp");
-	}
-
 	public void setSubscribed(LocalDateTime subscribed) {
 		this.subscribed = subscribed;
 	}
