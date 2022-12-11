@@ -461,7 +461,16 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 			throws IllegalAccessException, InstantiationException, NoSuchFieldException {
 		T object = documentClass.newInstance();
 		for (String fieldName : fieldNames) {
-			Field field = documentClass.getDeclaredField(fieldName);
+			Field field;
+			try {
+				field = documentClass.getDeclaredField(fieldName);
+			} catch (NoSuchFieldException ex) {
+				if (documentClass.getSuperclass() != null) {
+					field = documentClass.getSuperclass().getDeclaredField(fieldName);
+				} else {
+					throw ex;
+				}
+			}
 			field.setAccessible(true);
 			Object value = fields.get(fieldName) != null ? fields.get(fieldName).getValue() : null;
 			if (value == null) {

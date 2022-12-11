@@ -13,6 +13,10 @@ public abstract class EntityService<T extends DocumentEntity> {
 		this.entityClass = entityClass;
 	}
 
+	public Class<T> getEntityClass() {
+		return entityClass;
+	}
+
 	public T persist(@Valid T entity) {
 		String id = getDocumentManager().insert(entity);
 		entity.setId(id);
