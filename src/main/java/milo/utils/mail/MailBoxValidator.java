@@ -122,7 +122,7 @@ public class MailBoxValidator {
 	}
 
 	public static boolean isEmailSyntaxValid(String email) {
-		return email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,4}$");
+		return email != null && email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,4}$");
 	}
 
 	private static ArrayList<String> getMX(String hostName) throws NamingException {

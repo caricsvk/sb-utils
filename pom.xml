@@ -33,6 +33,13 @@
 			<artifactId>jakarta.xml.bind-api</artifactId>
 			<version>2.3.3</version>
 		</dependency>
+
+		<dependency>
+			<groupId>org.brotli</groupId>
+			<artifactId>dec</artifactId>
+			<version>0.1.2</version>
+		</dependency>
+
 	</dependencies>
 
 	<properties>
@@ -48,8 +55,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.6.0</version>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<source>11</source>
+					<target>11</target>
 				</configuration>
 			</plugin>
 			<plugin>
