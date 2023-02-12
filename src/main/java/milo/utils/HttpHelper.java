@@ -93,6 +93,7 @@ public class HttpHelper {
 				String[] parts = charset.split("harset=");
 				charset = (parts.length > 1) ? parts[1].trim() : "utf-8";
 			}
+			charset = charset.replaceAll("\"", "");
 
 			StringBuffer tmp = new StringBuffer();
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(inputStream, Charset.forName(charset)))) {

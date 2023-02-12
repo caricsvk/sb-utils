@@ -98,7 +98,7 @@ public class ImageHelper {
 				((HttpURLConnection) urlConnection).disconnect();
 			}
 		}
-		return image;
+		return image.getContent() == null || image.getContent().length == 0 ? null : image;
 	}
 
 	/**
@@ -116,13 +116,13 @@ public class ImageHelper {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		try {
 			inputStream.close();
-			ImageIO.write(ioImage, extractContentTypeForImageIO(contentType), outputStream);
-			image.setContentType(contentType);
+			String formatName = extractContentTypeForImageIO(contentType, name);
+			ImageIO.write(ioImage, formatName, outputStream);
+			image.setContentType("image/" + formatName);
 		} catch (Exception ex) {
-			String[] splitImgName = name.split("\\.");
-			String suffixContentType = "image/" + splitImgName[splitImgName.length - 1];
-			ImageIO.write(ioImage, extractContentTypeForImageIO(suffixContentType), outputStream);
-			image.setContentType(suffixContentType);
+			String alternativeFormatName = "png";
+			ImageIO.write(ioImage, alternativeFormatName, outputStream);
+			image.setContentType("image/" + alternativeFormatName);
 		}
 		outputStream.flush();
 		outputStream.close();
@@ -157,9 +157,19 @@ public class ImageHelper {
 	}
 
 	private static String extractContentTypeForImageIO(String contentType) {
-		return contentType.split("/")[1].split(";")[0];
+		return contentType != null && contentType.startsWith("image") ?
+				contentType.split("/")[1].split(";")[0] : "jpeg";
 	}
 
+	private static String extractContentTypeForImageIO(String contentType, String filename) {
+		String ending = "";
+		if (filename != null) {
+			String[] splitImgName = filename.split("\\.");
+			ending = splitImgName[splitImgName.length - 1];
+		}
+		return contentType != null && contentType.startsWith("image") ? contentType.split("/")[1].split(";")[0]
+				: "jpeg".equals(ending) || "jpg".equals(ending) || "png".equals(ending) ? ending : "jpeg";
+	}
 
 	public static byte[] bestResize(byte[] data, int width, String contentType) throws IOException {
 		BufferedImage originalInstance = ImageIO.read(new ByteArrayInputStream(data));
