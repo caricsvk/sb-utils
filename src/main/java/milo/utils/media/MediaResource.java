@@ -7,7 +7,6 @@ import milo.utils.image.ImageHelper;
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -19,7 +18,6 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
 import java.awt.*;
@@ -27,10 +25,11 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,10 +43,27 @@ public abstract class MediaResource {
 	protected abstract MediaService<AbstractMedia> getMediaService();
 	protected abstract HttpServletRequest getHttpServletRequest();
 
-	@POST
-	@Path("image-from-url")
+	@POST @Path("image-from-url")
 	public String createImageFromUrl(String url) {
 		return "{\"mediaId\": " + getMediaService().createFromUrl(url) + "}";
+	}
+
+	@GET @Path("image-from-url")
+	public void getImageFromUrl(
+			@QueryParam("url") String url,
+			@QueryParam("max-width") @DefaultValue("1200") Integer maxWidth,
+			@Context Request request,
+			@Suspended final AsyncResponse asyncResponse
+	) {
+		milo.utils.image.Image image = getMediaService().getFromUrl(url, maxWidth);
+		AbstractMedia media = this.getMediaService().createNew();
+		media.setName(Arrays.toString(Base64.getEncoder().encode(url.getBytes(StandardCharsets.UTF_8))));
+		media.setContentType(image.getContentType());
+		media.setHeight(image.getHeight());
+		media.setWidth(image.getWidth());
+		media.setData(image.getContent());
+		media.setContentSize(media.getData().length);
+		respondWithImage(media, asyncResponse, request);
 	}
 
 	public AbstractMedia uploadFile(
@@ -72,30 +88,7 @@ public abstract class MediaResource {
 			@Context Request request,
 			@Suspended final AsyncResponse asyncResponse
 	) {
-		long methodStart = System.currentTimeMillis();
-		AbstractMedia media = getMediaService().findByName(name);
-		long findTook = System.currentTimeMillis() - methodStart;
-		CacheControl cacheControl = new CacheControl();
-		cacheControl.setMaxAge(31536000);
-
-		BiConsumer<Object, Long> resume = (Object response, Long downloadTime) -> {
-			asyncResponse.resume(response);
-			LOG.info("getContentByUrl took " + (System.currentTimeMillis() - methodStart) +
-					"ms, find took " + findTook +
-					(downloadTime == null ? "" : ", download took " + downloadTime) + ", " + name);
-		};
-
-		if (media != null) {
-			EntityTag etag = new EntityTag(Integer.toString(media.hashCode()));
-			Response.ResponseBuilder builder = request.evaluatePreconditions(etag);
-			if (builder == null) {
-				builder = Response.ok(media.getData(), media.getContentType()).tag(etag);
-			}
-			resume.accept(builder.cacheControl(cacheControl).build(), null);
-//			getMediaService().persistToFileIfNotExists(media.getName(), media.getData());
-		} else {
-			resume.accept(Response.noContent().build(), null);
-		}
+		respondWithImage(getMediaService().findByName(name), asyncResponse, request);
 	}
 
 	@GET
@@ -134,6 +127,23 @@ public abstract class MediaResource {
 		AbstractMedia media = getMediaService().find(id);
 		media.setData(null);
 		return media;
+	}
+
+	private void respondWithImage(AbstractMedia media, AsyncResponse asyncResponse, Request request) {
+		CacheControl cacheControl = new CacheControl();
+		cacheControl.setMaxAge(31536000);
+
+		if (media != null) {
+			EntityTag etag = new EntityTag(Integer.toString(media.hashCode()));
+			Response.ResponseBuilder builder = request.evaluatePreconditions(etag);
+			if (builder == null) {
+				builder = Response.ok(media.getData(), media.getContentType()).tag(etag);
+			}
+			asyncResponse.resume(builder.cacheControl(cacheControl).build());
+//			getMediaService().persistToFileIfNotExists(media.getName(), media.getData());
+		} else {
+			asyncResponse.resume(Response.noContent().build());
+		}
 	}
 
 	private BufferedImage imageQualityComparator(int type, Integer size, byte[] data) throws IOException {
