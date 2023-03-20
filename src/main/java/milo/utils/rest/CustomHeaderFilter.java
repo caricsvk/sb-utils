@@ -3,6 +3,8 @@ package milo.utils.rest;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
+import javax.ws.rs.container.ResourceInfo;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 import java.io.IOException;
@@ -18,6 +20,8 @@ public class CustomHeaderFilter implements ContainerResponseFilter {
 	public static final String ALLOW_CREDENTIALS = "xyAllowCredentials!";
 	public static List<String> credentialsOriginsPrefixes = new ArrayList();
 
+	@Context private ResourceInfo resourceInfo;
+
 	@Override
 	public void filter(
 			ContainerRequestContext requestContext,
@@ -30,7 +34,8 @@ public class CustomHeaderFilter implements ContainerResponseFilter {
 		boolean allowedOrigin = credentialsOriginsPrefixes.stream().anyMatch(requestedOrigin::startsWith);
 		addToHeadersByCustomHeaderAnnotation(
 				responseContext.getHeaders(),
-				responseContext.getEntityAnnotations(),
+				resourceInfo.getResourceMethod() != null ?
+						resourceInfo.getResourceMethod().getAnnotations() : responseContext.getEntityAnnotations(),
 				allowedOrigin ? requestedOrigin : ""
 		);
 	}
