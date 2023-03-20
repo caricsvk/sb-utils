@@ -27,7 +27,8 @@ public class OptionsAllowOriginFilter implements ContainerResponseFilter {
 					String.join(", ", responseContext.getAllowedMethods())
 			);
 			responseContext.getHeaders().putSingle("Access-Control-Allow-Headers",
-					"Content-Type, Accept, Cookie, prevent-default-error-handling"
+					"Content-Type, Accept, Cookie," +
+					"prevent-default-error-handling, exclude-from-counting, prevent-default-cancellation"
 			);
 		}
 	}
