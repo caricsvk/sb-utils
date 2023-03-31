@@ -68,7 +68,7 @@ public class ImageHelper {
 			return null;
 		}
 		Image image;
-		URLConnection urlConnection = null;
+		HttpURLConnection urlConnection = null;
 		try {
 
 			urlConnection = HttpHelper.buildUrlConnection(url);
@@ -91,11 +91,11 @@ public class ImageHelper {
 			}
 			image = create(inputStream, imgName, urlConnection.getContentType(), url);
 		} catch (Exception ex) {
-			LOG.log(Level.SEVERE, ex.getMessage(), ex);
+			LOG.log(Level.SEVERE, "caught exception createFromUrl: " + ex.getMessage() + "; for url: " + url);
 			return null;
 		} finally {
-			if (urlConnection != null && urlConnection instanceof HttpURLConnection) {
-				((HttpURLConnection) urlConnection).disconnect();
+			if (urlConnection != null) {
+				urlConnection.disconnect();
 			}
 		}
 		return image.getContent() == null || image.getContent().length == 0 ? null : image;
