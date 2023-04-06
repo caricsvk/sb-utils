@@ -1,8 +1,11 @@
 package milo.utils;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 
 public class DateTimeHelper {
 
@@ -10,15 +13,27 @@ public class DateTimeHelper {
 		if (timestamp == null) {
 			return null;
 		}
-		return LocalDateTime.ofEpochSecond(timestamp.getTime() / 1000, timestamp.getNanos(), ZoneOffset.UTC);
+		return timestamp.toLocalDateTime();
+	}
+
+	public static ZonedDateTime toZonedDateTime(Timestamp timestamp) {
+		if (timestamp == null) {
+			return null;
+		}
+		return ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp.getTime()), ZoneId.systemDefault());
 	}
 
 	public static Timestamp toTimestamp(LocalDateTime localDateTime) {
 		if (localDateTime == null) {
 			return null;
 		}
-		Timestamp timestamp = new Timestamp(localDateTime.toEpochSecond(ZoneOffset.UTC) * 1000);
-		timestamp.setNanos(localDateTime.getNano());
-		return timestamp;
+		return toTimestamp(localDateTime.atZone(ZoneId.systemDefault()));
+	}
+
+	public static Timestamp toTimestamp(ZonedDateTime zonedDateTime) {
+		if (zonedDateTime == null) {
+			return null;
+		}
+		return Timestamp.from(zonedDateTime.toInstant());
 	}
 }
