@@ -1,23 +1,46 @@
 package milo.utils.resource;
 
 import java.time.LocalDateTime;
+import java.util.logging.Logger;
 
 public class CachedResponse<T> {
 
-	LocalDateTime fetched;
-	int minutesExpiration = 20;
-	T result;
+	private static final Logger LOG = Logger.getLogger(CachedResponse.class.getName());
 
-	public CachedResponse(LocalDateTime fetched) {
-		this.fetched = fetched;
-	}
+	private LocalDateTime fetched;
+	private int minutesExpiration = 20;
+	protected T result;
 
-	public CachedResponse(LocalDateTime fetched, int minutesExpiration) {
-		this.fetched = fetched;
+	public CachedResponse() { }
+
+	public CachedResponse(int minutesExpiration) {
 		this.minutesExpiration = minutesExpiration;
 	}
 
-	boolean isCurrent() {
+	public boolean isCurrent() {
 		return fetched != null && fetched.isAfter(LocalDateTime.now().minusMinutes(minutesExpiration));
+	}
+
+	public T getResult() {
+		return result;
+	}
+
+	public void setResultUpdateFetched(T result) {
+		this.fetched = LocalDateTime.now();
+		this.result = result;
+	}
+
+	public void setExpiration(int minutes) {
+		this.minutesExpiration = minutes;
+	}
+
+	public void clear() {
+//		LOG.info("clearing cache fetched at " + fetched + "; minutes expiration: " + minutesExpiration);
+		this.fetched = null;
+		this.result = null;
+	}
+
+	public LocalDateTime getFetched() {
+		return fetched;
 	}
 }
