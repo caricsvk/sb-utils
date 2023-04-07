@@ -20,7 +20,7 @@ public class CachedFileResponse extends CachedResponse<String> {
 	@Override
 	public synchronized String getResult() {
 		boolean inMemory = result != null;
-		LOG.info("getting cache from filesystem, already in memory: " + inMemory + ", key: " + fileName);
+		LOG.info("getting cache from file, already in memory: " + inMemory + ",\n\tgcfmkey: " + fileName);
 		if (inMemory) {
 			return result;
 		}
@@ -35,6 +35,10 @@ public class CachedFileResponse extends CachedResponse<String> {
 
 	public void releaseResultFromMemory() {
 		this.result = null;
+	}
+
+	public String getResultWithoutFetch() {
+		return result;
 	}
 
 	private String loadFile() throws IOException {

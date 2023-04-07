@@ -74,12 +74,12 @@ public class CacheResource<T> {
 					try {
 						T response = cache instanceof CachedFileResponse ? this.persistAndGetUrlFile(key) : dataSupplier.get();
 						cache.setResultUpdateFetched(response);
-						LOG.info("fetching took " + (System.currentTimeMillis() - start) + "ms, key: " + key);
+						LOG.info("fetching took " + (System.currentTimeMillis() - start) + "ms,\n\tftkey: " + key);
 //						cache.setResult(dataSupplier.get());
 					} catch (Exception e) {
 						// not even sequentially when there are parallel requests (2)
 						cache.setResultUpdateFetched(null);
-						LOG.info("fetching failed after " + (System.currentTimeMillis() - start) + "ms, key: " + key);
+						LOG.info("fetching failed after " + (System.currentTimeMillis() - start) + "ms,\n\tffkey: " + key);
 						e.printStackTrace();
 					}
 				}
