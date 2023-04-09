@@ -69,6 +69,10 @@ public class HttpHelper {
 	}
 
 	public static PageResponse download(HttpURLConnection urlCon) throws IOException, MetaRefreshOccurred {
+		return download(urlCon, 0);
+	}
+
+	public static PageResponse download(HttpURLConnection urlCon, int followAnyRedirects) throws IOException, MetaRefreshOccurred {
 		try {
 			urlCon.connect();
 
@@ -129,7 +133,7 @@ public class HttpHelper {
 			int responseCode = urlCon.getResponseCode();
 			if (responseCode == 301 || responseCode == 302) {
 				String newUrlString = urlCon.getHeaderField("Location");
-				if (newUrlString.replace("https", "http").equals(urlCon.getURL().toString())) {
+				if (followAnyRedirects > 0 || newUrlString.replace("https", "http").equals(urlCon.getURL().toString())) {
 					return download(newUrlString, cookies);
 				}
 			}
