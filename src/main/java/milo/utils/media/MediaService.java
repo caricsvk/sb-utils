@@ -4,17 +4,25 @@ import milo.utils.image.Image;
 import milo.utils.image.ImageHelper;
 import milo.utils.jpa.EntityService;
 
+import javax.imageio.ImageIO;
 import javax.persistence.NoResultException;
 import javax.transaction.Transactional;
 import javax.validation.Valid;
 import javax.ws.rs.ForbiddenException;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 
 public abstract class MediaService<T extends AbstractMedia> extends EntityService<T, Long> {
@@ -163,27 +171,34 @@ public abstract class MediaService<T extends AbstractMedia> extends EntityServic
 		}
 	}
 
-//	@Async
-//	public void persistToFileIfNotExists(String uniqueName, byte[] data) {
-//		// wait 3-15 seconds to persist images to File / prevent resources exhaustion during new images fetch
-//		this.scheduler.schedule(() -> {
-//			try {
-//				if (uniqueName.length() > 255) {
-//					LOG.info("persistToFileIfNotExists skips " + uniqueName + " - encoded file name too long");
-//					return;
-//				}
-//				File file = new File(this.imagesDirLocationPath + uniqueName);
-//				if (! file.exists()) {
-//					LOG.info("creating image " + file.getName());
-//					String extension = uniqueName.substring(uniqueName.lastIndexOf(".") + 1);
-//					ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
-//					ImageIO.write(ImageIO.read(byteArrayInputStream), extension, file );
-//				}
-//			} catch(Exception e) {
-//				LOG.log(Level.WARNING, "caught " + e.getMessage(), e);
-//			}
-//		}, Instant.now().plusSeconds(3 + new Random().nextInt(12)));
-//	}
+	public boolean persistImgToFileSystem(String filePath, String extension, byte[] data) {
+		try {
+			LOG.info("persistImgToFileSystem " + filePath);
+			String completePath = filePath + "/" + extension;
+			Files.createDirectories(Paths.get(completePath).getParent());
+			File file = new File(completePath);
+			ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data);
+			ImageIO.write(ImageIO.read(byteArrayInputStream), extension, file);
+			return true;
+		} catch(Exception e) {
+			LOG.log(Level.WARNING, "caught persistImgToFileSystem " + e.getMessage(), e);
+			return false;
+		}
+	}
+
+	public File retrieveImgFromFileSystem(String filePath) {
+		try (Stream<Path> stream = Files.walk(Paths.get(filePath))) {
+			Path path = stream.filter(Files::isRegularFile).findFirst().orElse(null);
+			boolean isNull = path == null;
+			LOG.info("retrieveImgFromFileSystem " + (!isNull) + ": " + filePath);
+			return isNull ? null : path.toFile();
+		} catch (NoSuchFileException e) {
+			LOG.info("retrieveImgFromFileSystem not found " + filePath);
+		} catch(Exception e) {
+			LOG.log(Level.WARNING, "caught retrieveImgFromFileSystem " + e.getMessage(), e);
+		}
+		return null;
+	}
 
 }
 

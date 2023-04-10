@@ -6,16 +6,6 @@ import java.security.NoSuchAlgorithmException;
 
 public class ResourceHelper {
 
-	public static String getCacheDirectory() {
-		String rootPath = "/tmp";
-		try {
-			rootPath = System.getProperty("user.home");
-		} catch (Exception ex) {
-			// suppressed
-		}
-		return rootPath + "/.cache/presentboard";
-	}
-
 	public static String hashOrOriginal(String key) {
 		try {
 			MessageDigest messageDigest = MessageDigest.getInstance("MD5");

@@ -43,4 +43,8 @@ public class CachedResponse<T> {
 	public LocalDateTime getFetched() {
 		return fetched;
 	}
+
+	public void setFetched(LocalDateTime fetched) {
+		this.fetched = fetched;
+	}
 }
