@@ -72,7 +72,7 @@ public class CacheResource<T> {
 			return;
 		}
 		// fetch result or wait for response in executor thread to release http thread
-		CompletableFuture.runAsync(() -> {
+		new Thread(() -> {
 			synchronized (cache) { // fetch and process response only one in time
 				// not even sequentially when there are parallel requests (1)
 				if (preProcess.apply(cache) && !cache.isCurrent()) {
@@ -91,7 +91,7 @@ public class CacheResource<T> {
 					postProcess.accept(cache);
 				}
 			}
-		});
+		}).start();
 	}
 
 	private void setupCache() {

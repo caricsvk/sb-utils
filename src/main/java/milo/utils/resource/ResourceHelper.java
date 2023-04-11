@@ -31,7 +31,7 @@ public class ResourceHelper {
 	public static <T> T timeCapture(String key, Supplier<T> supplier) {
 		long startTime = System.currentTimeMillis();
 		try {
-//			LOG.info("timeCapture started\n\t key: " + key);
+			LOG.info("timeCapture started, key: " + key);
 			T result = supplier.get();
 			LOG.info("timeCapture took " + (System.currentTimeMillis() - startTime) + "ms, key: " + key);
 			return result;
