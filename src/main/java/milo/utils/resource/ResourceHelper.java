@@ -5,6 +5,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
@@ -39,14 +41,22 @@ public class ResourceHelper {
 		}
 	}
 
-	public static <T> CompletableFuture<T> getFilteredFuture(List<CompletableFuture<T>> futures, Function<T, Boolean> filter) {
+	public static <T> CompletableFuture<T> getFilteredFuture(
+			List<CompletableFuture<T>> futures, Function<T, Boolean> filter
+	) {
 		CompletableFuture<T> result = new CompletableFuture<>();
-		futures.forEach(future -> future.thenAccept(value -> {
-			if (filter.apply(value)) {
-				result.complete(value);
+		AtomicInteger count = new AtomicInteger(futures.size());
+		AtomicBoolean completed = new AtomicBoolean(false);
+		futures.forEach(future -> future.whenComplete((value, exception) -> {
+			LOG.info("completed " + (futures.size() - count.get()) + ", completing result " +
+					(!completed.get() && exception == null && filter.apply(value)));
+			if (!completed.get() && exception == null && filter.apply(value)) {
+				completed.set(result.complete(value));
+			}
+			if (count.decrementAndGet() == 0 && !completed.get()) {
+				result.complete(null);
 			}
 		}));
-		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenRun(() -> result.complete(null));
 		return result;
 	}
 }
