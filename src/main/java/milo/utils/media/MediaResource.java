@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -129,21 +128,23 @@ public abstract class MediaResource {
 		return media;
 	}
 
-	private void respondWithImage(AbstractMedia media, AsyncResponse asyncResponse, Request request) {
-		CacheControl cacheControl = new CacheControl();
-		cacheControl.setMaxAge(31536000);
+	public static void respondWithImage(AbstractMedia media, AsyncResponse asyncResponse, Request request) {
+		asyncResponse.resume(media == null ? Response.noContent().build() : getImageResponse(
+				media.hashCode(), media.getData(), media.getContentType(), 31536000, request
+		));
+	}
 
-		if (media != null) {
-			EntityTag etag = new EntityTag(Integer.toString(media.hashCode()));
-			Response.ResponseBuilder builder = request.evaluatePreconditions(etag);
-			if (builder == null) {
-				builder = Response.ok(media.getData(), media.getContentType()).tag(etag);
-			}
-			asyncResponse.resume(builder.cacheControl(cacheControl).build());
-//			getMediaService().persistToFileIfNotExists(media.getName(), media.getData());
-		} else {
-			asyncResponse.resume(Response.noContent().build());
+	public static Response getImageResponse(
+			int hash, byte[] data, String contentType, int maxAgeSeconds, Request request
+	) {
+		CacheControl cacheControl = new CacheControl();
+		cacheControl.setMaxAge(maxAgeSeconds);
+		EntityTag etag = new EntityTag(Integer.toString(hash));
+		Response.ResponseBuilder builder = request.evaluatePreconditions(etag);
+		if (builder == null) {
+			builder = Response.ok(data, contentType).tag(etag);
 		}
+		return builder.cacheControl(cacheControl).build();
 	}
 
 	private BufferedImage imageQualityComparator(int type, Integer size, byte[] data) throws IOException {

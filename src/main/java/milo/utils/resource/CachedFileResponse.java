@@ -26,14 +26,18 @@ public abstract class CachedFileResponse extends CachedResponse<String> {
 	@Override
 	public synchronized String getResult() {
 		boolean inMemory = result != null;
-		LOG.info("getting cache from file, already in memory: " + inMemory + ",\n\tgcfmkey: " + fileName);
+		long start = System.currentTimeMillis();
 		if (inMemory) {
+			LOG.info("getting file from memory,\n\tgcfmkey: " + fileName);
 			return result;
 		}
 		try {
 			result = loadFile();
+			LOG.info("getting file from filesystem took: " + (System.currentTimeMillis() - start) +
+					"ms, \n\tgcfmkey: " + fileName);
 		} catch (Exception ex) {
-			LOG.warning("caught getting file cache from file: " + ex.getMessage());
+			LOG.warning("caught getting file from filesystem took: " + (System.currentTimeMillis() - start) +
+					"ms, exception: " + ex.getMessage() +"\n\tgcffmkey: " + fileName);
 			clear();
 		}
 		return result;
@@ -48,6 +52,7 @@ public abstract class CachedFileResponse extends CachedResponse<String> {
 	}
 
 	public void persistResult(String urlString) throws IOException {
+		long start = System.currentTimeMillis();
 		StringBuilder stringBuilder = new StringBuilder();
 		URL url = new URL(urlString);
 		String outputFilename = getFilePath(urlString);
@@ -73,6 +78,7 @@ public abstract class CachedFileResponse extends CachedResponse<String> {
 				stringBuilder.append(stringPart);
 			}
 		}
+		LOG.info("resolving file took " + (System.currentTimeMillis() - start) + "ms, ftkey: " + urlString);
 		setResultUpdateFetched(stringBuilder.toString());
 	}
 

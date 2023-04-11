@@ -60,13 +60,13 @@ public class CacheResource<T> {
 		return this;
 	}
 
-	public CacheResource<T> postProcess(Consumer<CachedResponse<T>> alterCache) {
-		this.postProcess = alterCache;
+	public CacheResource<T> postProcess(Consumer<CachedResponse<T>> postProcess) {
+		this.postProcess = postProcess;
 		return this;
 	}
 
 	public void resolve(AsyncResponse asyncResponse) {
-		// there was result successfully fetched within last 20 minutes
+		// there was result successfully fetched within last N minutes
 		if (cache.isCurrent()) {
 			asyncResponse.resume(processResult(process));
 			return;
@@ -75,7 +75,7 @@ public class CacheResource<T> {
 		CompletableFuture.runAsync(() -> {
 			synchronized (cache) { // fetch and process response only one in time
 				// not even sequentially when there are parallel requests (1)
-				if (!cache.isCurrent()) {
+				if (preProcess.apply(cache) && !cache.isCurrent()) {
 					setupCache();
 				}
 			}
@@ -83,9 +83,13 @@ public class CacheResource<T> {
 			if (!asyncResponse.isDone()) {
 				asyncResponse.resume(processResult(process));
 			}
-			// reset cache immediately if there is empty result / error to fetch it again soon
-			if (cache.getResult() == null) {
-				cache.clear();
+			synchronized (cache) {
+				// reset cache immediately if there is empty result / error to fetch it again soon
+				if (cache.getResult() == null) {
+					cache.clear();
+				} else if (postProcess != null) {
+					postProcess.accept(cache);
+				}
 			}
 		});
 	}
@@ -93,26 +97,28 @@ public class CacheResource<T> {
 	private void setupCache() {
 		long start = System.currentTimeMillis();
 		try {
-			if (preProcess.apply(cache) && dataSupplier != null) {
+			if (dataSupplier != null) {
 				cache.setResultUpdateFetched(dataSupplier.get());
 			}
-			LOG.info("resolving took " + (System.currentTimeMillis() - start) + "ms,\n\tftkey: " + key);
-			if (postProcess != null) {
-				CompletableFuture.runAsync(() -> postProcess.accept(cache));
-			}
+			LOG.info("resolving took " + (System.currentTimeMillis() - start) + "ms, ftkey: " + key);
 		} catch (Exception e) {
 			// not even sequentially when there are parallel requests (2)
 			cache.setResultUpdateFetched(null);
-			LOG.log(Level.WARNING, "resolving failed after " + (System.currentTimeMillis() - start) + "ms,\n\tffkey: " + key +
+			LOG.log(Level.WARNING, "resolving failed after " + (System.currentTimeMillis() - start) + "ms, ffkey: " + key +
 					";\n\tresolving caught ex: " + e.getMessage(), e);
 		}
 	}
 
 	private Object processResult(Function<CachedResponse<T>, Response> process) {
+		long start = System.currentTimeMillis();
 		try {
-			return process == null ? cache.getResult() : process.apply(cache);
+			Object result = process == null ? cache.getResult() : process.apply(cache);
+			LOG.info("processing took " + (System.currentTimeMillis() - start) + "ms, ftkey: " + key);
+			return result;
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOG.log(Level.WARNING, "caught processResult exception (& clearing cache), took " +
+							(System.currentTimeMillis() - start) + "ms, key: " + key + ", " + e.getMessage());
+			cache.clear();
 			return Response.serverError().build();
 		}
 	}
