@@ -4,6 +4,9 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -66,32 +69,78 @@ public class CacheResource<T> {
 	}
 
 	public void resolve(AsyncResponse asyncResponse) {
-		// there was result successfully fetched within last N minutes
-		if (cache.isCurrent()) {
-			asyncResponse.resume(processResult(process));
-			return;
-		}
-		// fetch result or wait for response in executor thread to release http thread
-		new Thread(() -> {
-			synchronized (cache) { // fetch and process response only one in time
-				// not even sequentially when there are parallel requests (1)
-				if (preProcess.apply(cache) && !cache.isCurrent()) {
-					setupCache();
+		resolve(asyncResponse, null);
+	}
+
+	public void resolve(AsyncResponse asyncResponse, Supplier<Executor> executor) {
+		resolve(asyncResponse, executor, false);
+	}
+
+	public void resolve(AsyncResponse asyncResponse, Supplier<Executor> executor, boolean useExecutorForCachedResponse) {
+		Runnable fullCycleCommand = () -> {
+			try {
+				synchronized (cache) { // fetch and process response only one in time
+					// not even sequentially when there are parallel requests (1)
+					if (preProcess.apply(cache) && !cache.isCurrent()) {
+						setupCache();
+					}
+					// return result even if it's null / error and wasn't resolved yet
+					if (!asyncResponse.isDone()) {
+						asyncResponse.resume(processResult(process));
+					}
+					// reset cache immediately if there is empty result / error to fetch it again soon
+					if (cache.getResult() == null) {
+						cache.clear();
+					} else if (postProcess != null) {
+						postProcess.accept(cache);
+					}
 				}
+			} finally {
+				cache.getSemaphore().release();
 			}
-			// return result even if it's null / error and wasn't resolved yet
-			if (!asyncResponse.isDone()) {
+		};
+
+		Runnable processAndRelease = () -> {
+			try {
 				asyncResponse.resume(processResult(process));
+			} finally {
+				cache.getSemaphore().release();
 			}
-			synchronized (cache) {
-				// reset cache immediately if there is empty result / error to fetch it again soon
-				if (cache.getResult() == null) {
-					cache.clear();
-				} else if (postProcess != null) {
-					postProcess.accept(cache);
-				}
+		};
+
+		Consumer<Runnable> safeRunWithExecutor = (Runnable command) -> {
+			try {
+				executor.get().execute(command);
+			} catch (Exception ex) {
+				LOG.log(Level.SEVERE, "caught resolve.execute fullCycle exception: " + ex.getMessage(), ex);
+				cache.getSemaphore().release();
 			}
-		}).start();
+		};
+
+		try { // allow only #permits from semaphore to go to exhaust executor threads
+//			LOG.info("acquiring lock, permits: " + cache.getSemaphore().availablePermits() + ", for: " + key);
+			cache.getSemaphore().acquire();
+			LOG.info("lock acquired, permits: " + cache.getSemaphore().availablePermits());
+		} catch (InterruptedException e) {
+			LOG.log(Level.SEVERE, "caught cache.getSemaphore().acquire exception: " + e.getMessage(), e);
+			throw new RuntimeException(e);
+		}
+
+		// there was result successfully fetched within last N minutes, run only process
+		if (cache.isCurrent()) {
+			if (executor != null && useExecutorForCachedResponse) {
+				safeRunWithExecutor.accept(processAndRelease);
+			} else {
+				processAndRelease.run();
+			}
+		} else { // run full cycle - preprocess, supply, process & postprocess
+			if (executor != null) {
+				safeRunWithExecutor.accept(fullCycleCommand);
+			} else {
+				fullCycleCommand.run();
+			}
+		}
+
 	}
 
 	private void setupCache() {
@@ -117,7 +166,7 @@ public class CacheResource<T> {
 			return result;
 		} catch (Exception e) {
 			LOG.log(Level.WARNING, "caught processResult exception (& clearing cache), took " +
-							(System.currentTimeMillis() - start) + "ms, key: " + key + ", " + e.getMessage());
+					(System.currentTimeMillis() - start) + "ms, key: " + key + ", " + e.getMessage());
 			cache.clear();
 			return Response.serverError().build();
 		}
