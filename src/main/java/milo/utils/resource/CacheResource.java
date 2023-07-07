@@ -50,6 +50,13 @@ public class CacheResource<T> {
 		return this;
 	}
 
+	/**
+	 *
+	 * @param preProcess this function is called before data supplier and returns
+	 *                   true if data supplier should be called / false if bypassing supplier.
+	 *                   Process & postProcess are called always.
+	 * @return
+	 */
 	public CacheResource<T> preProcess(Function<CachedResponse<T>, Boolean> preProcess) {
 		this.preProcess = preProcess;
 		return this;
@@ -115,6 +122,12 @@ public class CacheResource<T> {
 					processResult(process);
 				} else {
 					asyncResponse.resume(processResult(process));
+				}
+				// reset cache immediately if there is empty result / error to fetch it again soon
+				if (cache.getResult() == null) {
+					cache.clear();
+				} else if (postProcess != null) {
+					postProcess.accept(cache);
 				}
 			} finally {
 				cache.getSemaphore().release();
