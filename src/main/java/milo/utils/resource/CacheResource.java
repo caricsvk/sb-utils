@@ -3,10 +3,7 @@ package milo.utils.resource;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.Response;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -68,6 +65,16 @@ public class CacheResource<T> {
 		return this;
 	}
 
+	public T resolve() {
+		resolve(null, null);
+		return this.getCache().getResult();
+	}
+
+	public T resolve(Supplier<Executor> executor) {
+		resolve(null, executor);
+		return this.getCache().getResult();
+	}
+
 	public void resolve(AsyncResponse asyncResponse) {
 		resolve(asyncResponse, null);
 	}
@@ -85,7 +92,9 @@ public class CacheResource<T> {
 						setupCache();
 					}
 					// return result even if it's null / error and wasn't resolved yet
-					if (!asyncResponse.isDone()) {
+					if (asyncResponse == null) {
+						processResult(process);
+					} else if (!asyncResponse.isDone()) {
 						asyncResponse.resume(processResult(process));
 					}
 					// reset cache immediately if there is empty result / error to fetch it again soon
@@ -102,7 +111,11 @@ public class CacheResource<T> {
 
 		Runnable processAndRelease = () -> {
 			try {
-				asyncResponse.resume(processResult(process));
+				if (asyncResponse == null) {
+					processResult(process);
+				} else {
+					asyncResponse.resume(processResult(process));
+				}
 			} finally {
 				cache.getSemaphore().release();
 			}

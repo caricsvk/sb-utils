@@ -36,6 +36,10 @@ public class CachedResponse<T> {
 		this.result = result;
 	}
 
+	public void setResult(T result) {
+		this.result = result;
+	}
+
 	public void setExpiration(int minutes) {
 		this.minutesExpiration = minutes;
 	}
