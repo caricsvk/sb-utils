@@ -73,20 +73,21 @@ public class HttpHelper {
 	}
 
 	public static PageResponse download(HttpURLConnection urlCon, int followAnyRedirects) throws IOException, MetaRefreshOccurred {
+		InputStream urlInputStream = null;
+		InputStream inputStream = null;
 		try {
 			urlCon.connect();
-
-			InputStream inputStream;
 			String encoding = urlCon.getContentEncoding() == null ? "" : urlCon.getContentEncoding();
+			urlInputStream = urlCon.getInputStream();
 			switch (encoding) {
 				case "gzip":
-					inputStream = new GZIPInputStream(urlCon.getInputStream());
+					inputStream = new GZIPInputStream(urlInputStream);
 					break;
 				case "br":
-					inputStream = new BrotliInputStream(urlCon.getInputStream());
+					inputStream = new BrotliInputStream(urlInputStream);
 					break;
 				default:
-					inputStream = urlCon.getInputStream();
+					inputStream = urlInputStream;
 			}
 
 			String charset = urlCon.getContentType();
@@ -117,9 +118,8 @@ public class HttpHelper {
 			}
 			String cookies = extractCookiesFromConnection(urlCon);
 
-			if (urlCon instanceof HttpURLConnection) {
-				urlCon.disconnect();
-			}
+			urlCon.disconnect();
+
 			String result = String.valueOf(tmp);
 			String metaRefreshUrl = findMetaRefreshUrl(result);
 			if (metaRefreshUrl != null && !metaRefreshUrl.isEmpty()) {
@@ -141,7 +141,13 @@ public class HttpHelper {
 			headerFields.put("$cookies", Collections.singletonList(cookies));
 			return new PageResponse(headerFields, result);
 		} finally {
-			if (urlCon instanceof HttpURLConnection) {
+			if (inputStream != null) {
+				inputStream.close();
+			}
+			if (urlInputStream != null) {
+				urlInputStream.close();
+			}
+			if (urlCon != null) {
 				urlCon.disconnect();
 			}
 		}
