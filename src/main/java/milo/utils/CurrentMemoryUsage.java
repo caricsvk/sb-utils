@@ -3,6 +3,7 @@ package milo.utils;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -22,6 +23,13 @@ public class CurrentMemoryUsage {
 
 		System.out.printf(LocalDateTime.now() + ": " + prefix +
 				": runtime memory used: %d MB, max: %d MB%n", usedMemory / (1024 * 1024), maxMemory / (1024 * 1024));
+	}
+
+	public static double getMemoryUsagePercentage() {
+		Runtime runtime = Runtime.getRuntime();
+		double usedMemory = runtime.totalMemory() - runtime.freeMemory();
+		double maxMemory = runtime.maxMemory();
+		return (usedMemory / maxMemory) * 100.0;
 	}
 
 	public static void printMemoryBean(String prefix) {

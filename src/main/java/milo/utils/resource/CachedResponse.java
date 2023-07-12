@@ -1,6 +1,7 @@
 package milo.utils.resource;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.Semaphore;
 import java.util.logging.Logger;
 
 public class CachedResponse<T> {
@@ -10,6 +11,7 @@ public class CachedResponse<T> {
 	private LocalDateTime fetched;
 	private int minutesExpiration = 20;
 	protected T result;
+	protected final Semaphore semaphore = new Semaphore(2, true);
 
 	public CachedResponse() { }
 
@@ -25,8 +27,16 @@ public class CachedResponse<T> {
 		return result;
 	}
 
+	public Semaphore getSemaphore() {
+		return semaphore;
+	}
+
 	public void setResultUpdateFetched(T result) {
 		this.fetched = LocalDateTime.now();
+		this.result = result;
+	}
+
+	public void setResult(T result) {
 		this.result = result;
 	}
 
@@ -42,5 +52,9 @@ public class CachedResponse<T> {
 
 	public LocalDateTime getFetched() {
 		return fetched;
+	}
+
+	public void setFetched(LocalDateTime fetched) {
+		this.fetched = fetched;
 	}
 }
