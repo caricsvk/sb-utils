@@ -63,6 +63,17 @@ public class ImageHelper {
 	}
 
 	public static Image createFromUrl(String url) {
+		return createFromUrl(url, null, null);
+	}
+
+	/**
+	 *
+	 * @param url
+	 * @param connectionTimeoutMs
+	 * @param readTimeoutSeconds
+	 * @return
+	 */
+	public static Image createFromUrl(String url, Integer connectionTimeoutMs, Integer readTimeoutSeconds) {
 
 		if (! HttpHelper.isUrl(url)) {
 			return null;
@@ -72,6 +83,14 @@ public class ImageHelper {
 		try {
 
 			urlConnection = HttpHelper.buildUrlConnection(url);
+
+			if (connectionTimeoutMs != null) {
+				urlConnection.setConnectTimeout(connectionTimeoutMs);
+			}
+			if (readTimeoutSeconds != null) {
+				urlConnection.setReadTimeout(readTimeoutSeconds);
+			}
+
 			urlConnection.connect();
 
 			String imgName = "not-defined";
