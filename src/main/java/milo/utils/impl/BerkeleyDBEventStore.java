@@ -22,15 +22,11 @@ public class BerkeleyDBEventStore extends EventStore {
 	private Database database;
 
 	@Inject
-	private BerkeleyDBFactory berkeleyDBFactory;
-
-	@Inject
-	public BerkeleyDBEventStore(MessageBroker messageBroker) {
+	public BerkeleyDBEventStore(
+			BerkeleyDBFactory berkeleyDBFactory,
+			MessageBroker messageBroker
+	) {
 		super(messageBroker);
-	}
-
-	@PostConstruct
-	private void postConstruct() {
 		this.database = berkeleyDBFactory.getDatabase();
 	}
 
