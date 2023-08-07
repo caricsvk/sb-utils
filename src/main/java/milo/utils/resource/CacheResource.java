@@ -18,7 +18,7 @@ public class CacheResource<T> {
 	private final CachedResponse<T> cache;
 	private final Supplier<T> dataSupplier;
 	private Function<CachedResponse<T>, Boolean> preProcess = cache -> true;
-	private Function<CachedResponse<T>, Response> process;
+	private Function<CachedResponse<T>, Object> process;
 	private Consumer<CachedResponse<T>> postProcess;
 
 	private CacheResource(CachedResponse<T> cache, Supplier<T> dataSupplier) {
@@ -62,7 +62,7 @@ public class CacheResource<T> {
 		return this;
 	}
 
-	public CacheResource<T> process(Function<CachedResponse<T>, Response> dataProcessor) {
+	public CacheResource<T> process(Function<CachedResponse<T>, Object> dataProcessor) {
 		this.process = dataProcessor;
 		return this;
 	}
@@ -184,7 +184,7 @@ public class CacheResource<T> {
 		}
 	}
 
-	private Object processResult(Function<CachedResponse<T>, Response> process) {
+	private Object processResult(Function<CachedResponse<T>, Object> process) {
 		long start = System.currentTimeMillis();
 		try {
 			Object result = process == null ? cache.getResult() : process.apply(cache);
