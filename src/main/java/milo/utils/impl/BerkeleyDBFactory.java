@@ -28,32 +28,32 @@ public class BerkeleyDBFactory {
 	}
 
 	@PostConstruct
-	private void openBerkeley() {
-        if (pathToBerkeleyData != null && berkeleyDatabaseName != null && environment == null && database == null) {
-            EnvironmentConfig envConfig = new EnvironmentConfig();
-            envConfig.setAllowCreate(true);
-            envConfig.setSharedCache(true);
-            environment = new Environment(new File(pathToBerkeleyData), envConfig);
-            DatabaseConfig dbConfig = new DatabaseConfig();
-            dbConfig.setAllowCreate(true);
-            database = environment.openDatabase(null, berkeleyDatabaseName, dbConfig);
-        }
+	protected void openBerkeley() {
+		if (pathToBerkeleyData != null && berkeleyDatabaseName != null && environment == null && database == null) {
+			EnvironmentConfig envConfig = new EnvironmentConfig();
+			envConfig.setAllowCreate(true);
+			envConfig.setSharedCache(true);
+			environment = new Environment(new File(pathToBerkeleyData), envConfig);
+			DatabaseConfig dbConfig = new DatabaseConfig();
+			dbConfig.setAllowCreate(true);
+			database = environment.openDatabase(null, berkeleyDatabaseName, dbConfig);
+		}
 	}
 
 	@PreDestroy
-	private void closeBerkeley() {
-        if (database != null) {
-            database.close();
-            database = null;
-        }
-        if (environment != null) {
-            environment.close();
-            environment = null;
-        }
-    }
+	protected void closeBerkeley() {
+		if (database != null) {
+			database.close();
+			database = null;
+		}
+		if (environment != null) {
+			environment.close();
+			environment = null;
+		}
+	}
 
-    public Database getDatabase() {
-        return database;
-    }
+	public Database getDatabase() {
+		return database;
+	}
 
 }
