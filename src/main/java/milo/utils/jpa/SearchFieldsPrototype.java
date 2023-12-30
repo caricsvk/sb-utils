@@ -1,6 +1,6 @@
 package milo.utils.jpa;
 
-import javax.persistence.Transient;
+import jakarta.persistence.Transient;
 import javax.xml.bind.annotation.XmlTransient;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;

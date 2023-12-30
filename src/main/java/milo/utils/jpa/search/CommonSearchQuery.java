@@ -1,8 +1,8 @@
 package milo.utils.jpa.search;
 
-import javax.validation.constraints.Max;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.QueryParam;
+import jakarta.validation.constraints.Max;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.QueryParam;
 
 public class CommonSearchQuery {
 

@@ -1,7 +1,7 @@
 package milo.utils.resource;
 
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.container.AsyncResponse;
+import jakarta.ws.rs.core.Response;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;

@@ -2,7 +2,7 @@ package milo.utils.eventstore;
 
 import milo.utils.eventstore.models.Event;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 /**
  * Created by caric on 1/21/15.

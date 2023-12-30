@@ -2,7 +2,7 @@ package milo.utils.auth;
 
 import milo.utils.jpa.EntityService;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.List;
 
 public abstract class AuthSessionsService<T extends AuthSession<U>, U extends AuthUser> extends EntityService<T, Long> {

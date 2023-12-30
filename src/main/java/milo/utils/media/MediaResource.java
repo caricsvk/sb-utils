@@ -5,21 +5,21 @@ import milo.utils.auth.AuthUser;
 import milo.utils.image.ImageHelper;
 
 import javax.imageio.ImageIO;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.Request;
-import javax.ws.rs.core.Response;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.container.AsyncResponse;
+import jakarta.ws.rs.container.Suspended;
+import jakarta.ws.rs.core.CacheControl;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.Request;
+import jakarta.ws.rs.core.Response;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -42,12 +42,14 @@ public abstract class MediaResource {
 	protected abstract MediaService<AbstractMedia> getMediaService();
 	protected abstract HttpServletRequest getHttpServletRequest();
 
-	@POST @Path("image-from-url")
+	@POST
+	@Path("image-from-url")
 	public String createImageFromUrl(String url) {
 		return "{\"mediaId\": " + getMediaService().createFromUrl(url) + "}";
 	}
 
-	@GET @Path("image-from-url")
+	@GET
+	@Path("image-from-url")
 	public void getImageFromUrl(
 			@QueryParam("url") String url,
 			@QueryParam("max-width") @DefaultValue("1200") Integer maxWidth,

@@ -5,10 +5,10 @@ import milo.utils.image.ImageHelper;
 import milo.utils.jpa.EntityService;
 
 import javax.imageio.ImageIO;
-import javax.persistence.NoResultException;
-import javax.transaction.Transactional;
-import javax.validation.Valid;
-import javax.ws.rs.ForbiddenException;
+import jakarta.persistence.NoResultException;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.ws.rs.ForbiddenException;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;

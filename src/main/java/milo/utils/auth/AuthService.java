@@ -3,11 +3,11 @@ package milo.utils.auth;
 import milo.utils.jpa.EntityService;
 import milo.utils.mail.MailBoxValidator;
 
-import javax.persistence.NoResultException;
-import javax.servlet.http.HttpSession;
-import javax.transaction.Transactional;
-import javax.validation.Valid;
-import javax.ws.rs.NotAuthorizedException;
+import jakarta.persistence.NoResultException;
+import jakarta.servlet.http.HttpSession;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.ws.rs.NotAuthorizedException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
