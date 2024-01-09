@@ -3,7 +3,7 @@ package milo.utils.rest.jaxbadapters;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
 public class LocalDateTimeToString extends XmlAdapter<String, LocalDateTime> {
 

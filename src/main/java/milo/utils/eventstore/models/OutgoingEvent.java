@@ -2,7 +2,7 @@ package milo.utils.eventstore.models;
 
 import milo.utils.rest.jaxbadapters.LocalDateTimeToString;
 
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.time.LocalDateTime;
 
 public abstract class OutgoingEvent implements Event {

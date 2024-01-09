@@ -1,6 +1,6 @@
 package milo.utils.rest.jaxbadapters;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 import java.sql.Time;
 
 public class TimeToString extends XmlAdapter<String, Time> {

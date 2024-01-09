@@ -1,7 +1,8 @@
 package milo.utils.jpa;
 
 import jakarta.persistence.Transient;
-import javax.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.XmlTransient;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;

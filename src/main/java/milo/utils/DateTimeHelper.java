@@ -14,13 +14,15 @@ import java.util.List;
 
 public class DateTimeHelper {
 
+	public static final String FACEBOOK_DATETIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";
+
 	static final List<DateTimeFormatter> dateTimeFormatters = Arrays.asList(
 			DateTimeFormatter.ISO_OFFSET_DATE_TIME,
 			DateTimeFormatter.RFC_1123_DATE_TIME,
 			DateTimeFormatter.ISO_DATE_TIME,
 			DateTimeFormatter.ISO_LOCAL_DATE_TIME,
 			DateTimeFormatter.ISO_INSTANT,
-			DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
+			DateTimeFormatter.ofPattern(FACEBOOK_DATETIME_PATTERN)
 	);
 
 	static final List<DateTimeFormatter> dateFormatters = Arrays.asList(
