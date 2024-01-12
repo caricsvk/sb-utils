@@ -1,6 +1,6 @@
 package milo.utils.auth;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import milo.utils.jpa.EntityService;
 import milo.utils.mail.MailBoxValidator;
 
