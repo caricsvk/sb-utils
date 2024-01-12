@@ -1,5 +1,6 @@
 package milo.utils.auth;
 
+import javax.servlet.http.HttpServletRequest;
 import milo.utils.jpa.EntityService;
 import milo.utils.mail.MailBoxValidator;
 
@@ -30,6 +31,10 @@ public abstract class AuthService<T extends AuthUser> extends EntityService<T, L
 			String email, String password, String confirmationUUID, boolean subscribing
 	);
 
+	public AuthSession<T> getLoggedSession(HttpServletRequest httpServletRequest) {
+		return getLoggedSession(httpServletRequest.getSession(false));
+	}
+
 	public AuthSession<T> getLoggedSession(HttpSession httpSession) {
 		try {
 			AuthSession<T> userSession = (AuthSession<T>) httpSession.getAttribute(userSessionKey);
@@ -41,6 +46,10 @@ public abstract class AuthService<T extends AuthUser> extends EntityService<T, L
 			throw new NotAuthorizedException("session not found");
 		}
 		throw new NotAuthorizedException("user not found");
+	}
+
+	public T getLoggedUser(HttpServletRequest httpServletRequest) {
+		return getLoggedUser(httpServletRequest.getSession(false));
 	}
 
 	public T getLoggedUser(HttpSession httpSession) {
