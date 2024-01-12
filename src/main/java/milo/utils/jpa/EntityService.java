@@ -260,7 +260,9 @@ public abstract class EntityService<E, ID> {
 					// TODO try if it works within postgres and with EclipseLink
 					// this works with hibernate/mysql
 					List<Predicate> orPredicates = entityFilter.getValues().stream().map(value ->
-							cb.equal(cb.lower(cb.concat(path, "")), value.toLowerCase())).collect(Collectors.toList());
+							Number.class.isAssignableFrom(path.getJavaType()) ? cb.equal(path, value) :
+									cb.equal(cb.lower(cb.concat(path, "")), value.toLowerCase())
+					).collect(Collectors.toList());
 					predicates.add(cb.or(orPredicates.toArray(new Predicate[orPredicates.size()])));
 
 				}
