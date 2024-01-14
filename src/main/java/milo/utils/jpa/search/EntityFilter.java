@@ -7,6 +7,7 @@ public class EntityFilter {
 	private EntityFilterType entityFilterType = EntityFilterType.WILDCARD;
 	private List<String> values;
 	private String fieldName;
+	private Boolean caseSensitive;
 
 	public EntityFilter() {
 	}
@@ -17,12 +18,23 @@ public class EntityFilter {
 		this.values = values;
 	}
 
+	public EntityFilter(String fieldName, EntityFilterType entityFilterType, List<String> values, boolean caseSensitive) {
+		this.fieldName = fieldName;
+		this.entityFilterType = entityFilterType;
+		this.values = values;
+		this.caseSensitive = caseSensitive;
+	}
+
 	public EntityFilterType getEntityFilterType() {
 		return entityFilterType;
 	}
 
 	public void setEntityFilterType(EntityFilterType entityFilterType) {
 		this.entityFilterType = entityFilterType;
+	}
+
+	public Boolean getCaseSensitive() {
+		return caseSensitive;
 	}
 
 	public List<String> getValues() {

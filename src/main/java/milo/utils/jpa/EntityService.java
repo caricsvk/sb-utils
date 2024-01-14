@@ -259,12 +259,15 @@ public abstract class EntityService<E, ID> {
 				} else {
 					// TODO try if it works within postgres and with EclipseLink
 					// this works with hibernate/mysql
-					List<Predicate> orPredicates = entityFilter.getValues().stream().map(value ->
-							Number.class.isAssignableFrom(path.getJavaType()) ? cb.equal(path, value) :
-									cb.equal(cb.lower(cb.concat(path, "")), value.toLowerCase())
-					).collect(Collectors.toList());
-					predicates.add(cb.or(orPredicates.toArray(new Predicate[orPredicates.size()])));
-
+					if (Boolean.TRUE.equals(entityFilter.getCaseSensitive())) {
+						predicates.add(path.in(entityFilter.getValues()));
+					} else {
+						List<Predicate> orPredicates = entityFilter.getValues().stream().map(value ->
+								Number.class.isAssignableFrom(path.getJavaType()) ? cb.equal(path, value) :
+										cb.equal(cb.lower(cb.concat(path, "")), value.toLowerCase())
+						).collect(Collectors.toList());
+						predicates.add(cb.or(orPredicates.toArray(new Predicate[orPredicates.size()])));
+					}
 				}
 				break;
 			case WILDCARD:
