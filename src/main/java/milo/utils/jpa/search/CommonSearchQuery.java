@@ -11,7 +11,7 @@ public class CommonSearchQuery {
 	@DefaultValue("0")
 	private Integer offset = 0;
 	@QueryParam("limit")
-	@DefaultValue("10")
+	@DefaultValue("100")
 	@Min(1) @Max(100)
 	private Integer limit = 0;
 	@QueryParam("order")
