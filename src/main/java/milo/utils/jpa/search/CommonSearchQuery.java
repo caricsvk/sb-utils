@@ -1,6 +1,7 @@
 package milo.utils.jpa.search;
 
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.QueryParam;
 
@@ -10,8 +11,8 @@ public class CommonSearchQuery {
 	@DefaultValue("0")
 	private Integer offset = 0;
 	@QueryParam("limit")
-	@DefaultValue("0")
-	@Max(100)
+	@DefaultValue("10")
+	@Min(1) @Max(100)
 	private Integer limit = 0;
 	@QueryParam("order")
 	@DefaultValue("id")
