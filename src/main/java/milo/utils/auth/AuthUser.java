@@ -191,7 +191,7 @@ public abstract class AuthUser implements Serializable {
 		if (this == o) return true;
 		if (!(o instanceof AuthUser)) return false;
 		AuthUser user = (AuthUser) o;
-		return getId().equals(user.getId()) && getEmail().equals(user.getEmail()) && password.equals(user.password);
+		return getId().equals(user.getId()) && getEmail().equals(user.getEmail()) && Objects.equals(password, user.password);
 	}
 
 	@Override
