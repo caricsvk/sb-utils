@@ -62,23 +62,30 @@ public class HttpHelper {
 		return download(buildUrlConnection(url));
 	}
 
-	public static PageResponse download(String url, String cookies) throws IOException, MetaRefreshOccurred {
+	public static PageResponse download(
+			String url, String cookies, int followRedirects, boolean allowErrorStream
+	) throws IOException, MetaRefreshOccurred {
 		HttpURLConnection httpURLConnection = buildUrlConnection(url);
 		httpURLConnection.setRequestProperty("Cookie", cookies);
-		return download(httpURLConnection);
+		return download(httpURLConnection, followRedirects, allowErrorStream);
 	}
 
 	public static PageResponse download(HttpURLConnection urlCon) throws IOException, MetaRefreshOccurred {
-		return download(urlCon, 0);
+		return download(urlCon, 0, false);
 	}
 
-	public static PageResponse download(HttpURLConnection urlCon, int followAnyRedirects) throws IOException, MetaRefreshOccurred {
+	public static PageResponse download(
+			HttpURLConnection urlCon, int followAnyRedirects, boolean allowErrorStream
+	) throws IOException, MetaRefreshOccurred {
 		InputStream urlInputStream = null;
 		InputStream inputStream = null;
 		try {
 			urlCon.connect();
+			int responseCode = urlCon.getResponseCode();
 			String encoding = urlCon.getContentEncoding() == null ? "" : urlCon.getContentEncoding();
-			urlInputStream = urlCon.getInputStream();
+
+			urlInputStream = responseCode >= 400 && allowErrorStream ? urlCon.getErrorStream() : urlCon.getInputStream();
+
 			switch (encoding) {
 				case "gzip":
 					inputStream = new GZIPInputStream(urlInputStream);
@@ -91,7 +98,6 @@ public class HttpHelper {
 			}
 
 			String charset = urlCon.getContentType();
-
 			if (charset == null) {
 				charset = "utf-8";
 			} else {
@@ -121,6 +127,7 @@ public class HttpHelper {
 			urlCon.disconnect();
 
 			String result = String.valueOf(tmp);
+
 			String metaRefreshUrl = findMetaRefreshUrl(result);
 			if (metaRefreshUrl != null && !metaRefreshUrl.isEmpty()) {
 				if (metaRefreshUrl.startsWith("/")) {
@@ -130,11 +137,10 @@ public class HttpHelper {
 			}
 
 			// allow redirect from http to https
-			int responseCode = urlCon.getResponseCode();
 			if (responseCode == 301 || responseCode == 302) {
 				String newUrlString = urlCon.getHeaderField("Location");
 				if (followAnyRedirects > 0 || newUrlString.replace("https", "http").equals(urlCon.getURL().toString())) {
-					return download(newUrlString, cookies);
+					return download(newUrlString, cookies, followAnyRedirects - 1, allowErrorStream);
 				}
 			}
 
