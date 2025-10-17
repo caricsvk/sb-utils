@@ -16,8 +16,18 @@ public class TableSearchQuery extends CommonSearchQuery {
 
 	private String[] safeOrderPath = null;
 
-	public static TableSearchQuery createEmptyInstance() {
+	public static TableSearchQuery createInstance() {
 		return new TableSearchQuery(null);
+	}
+
+	public static TableSearchQuery createInstance(
+			String order, OrderType orderType, int limit
+	) {
+		TableSearchQuery tableSearchQuery = new TableSearchQuery(null);
+		tableSearchQuery.setOrderType(orderType);
+		tableSearchQuery.setOrder(order);
+		tableSearchQuery.setLimit(limit);
+		return tableSearchQuery;
 	}
 
 	public TableSearchQuery(@Context UriInfo ui) {

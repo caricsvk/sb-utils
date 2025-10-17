@@ -63,15 +63,34 @@ public class ImageHelper {
 	}
 
 	public static Image createFromUrl(String url) {
+		return createFromUrl(url, null, null);
+	}
+
+	/**
+	 *
+	 * @param url
+	 * @param connectionTimeoutMs
+	 * @param readTimeoutSeconds
+	 * @return
+	 */
+	public static Image createFromUrl(String url, Integer connectionTimeoutMs, Integer readTimeoutSeconds) {
 
 		if (! HttpHelper.isUrl(url)) {
 			return null;
 		}
 		Image image;
-		URLConnection urlConnection = null;
+		HttpURLConnection urlConnection = null;
 		try {
 
 			urlConnection = HttpHelper.buildUrlConnection(url);
+
+			if (connectionTimeoutMs != null) {
+				urlConnection.setConnectTimeout(connectionTimeoutMs);
+			}
+			if (readTimeoutSeconds != null) {
+				urlConnection.setReadTimeout(readTimeoutSeconds);
+			}
+
 			urlConnection.connect();
 
 			String imgName = "not-defined";
@@ -91,11 +110,11 @@ public class ImageHelper {
 			}
 			image = create(inputStream, imgName, urlConnection.getContentType(), url);
 		} catch (Exception ex) {
-			LOG.log(Level.SEVERE, "caught " + ex.getMessage(), ex);
+			LOG.log(Level.SEVERE, ex.getMessage(), ex);
 			return null;
 		} finally {
-			if (urlConnection != null && urlConnection instanceof HttpURLConnection) {
-				((HttpURLConnection) urlConnection).disconnect();
+			if (urlConnection != null) {
+				urlConnection.disconnect();
 			}
 		}
 		return image.getContent() == null || image.getContent().length == 0 ? null : image;
