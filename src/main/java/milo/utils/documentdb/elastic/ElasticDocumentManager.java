@@ -55,11 +55,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -138,6 +134,11 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 
 	@Override
 	public String insert(Object document) {
+		return insert(document, null);
+	}
+
+	@Override
+	public String insert(Object document, String id) {
 		try {
 			ElasticIndexType elasticIndexType = getIndexType(document.getClass());
 			String json = getJsonSerializer().serialize(document);
@@ -145,6 +146,9 @@ public abstract class ElasticDocumentManager implements DocumentManager {
 //					.type(elasticIndexType.getType())
 					.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
 					.source(json, XContentType.JSON);
+			if (id != null && !id.isBlank()) {
+				request.id(id);
+			}
 //			IndexResponse response = client.prepareIndex(
 //					elasticIndexType.getIndex(), elasticIndexType.getType()
 //			).setRefresh(true).setSource(json).execute().actionGet();

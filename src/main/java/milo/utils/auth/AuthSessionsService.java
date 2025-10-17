@@ -12,15 +12,15 @@ public abstract class AuthSessionsService<T extends AuthSession<U>, U extends Au
 	}
 
 	public abstract AuthSession<U> create(U user);
-
 	@Override @Transactional
 	public T find(Long id) {
-		T session = super.find(id);
-		if (session == null) {
-			return null;
-		}
-		session.addFetch();
-		return merge(session);
+		// TODO check whether it's cached on jpa lvl (so many subsequent fetches do not overwhelm db without much reason)
+		return super.find(id);
+//		if (session == null) {
+//			return null;
+//		}
+//		session.addFetch();
+//		return merge(session);
 	}
 
 	public List<T> findByUser(U user) {

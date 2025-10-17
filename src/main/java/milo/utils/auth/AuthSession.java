@@ -25,7 +25,7 @@ public abstract class AuthSession<T extends AuthUser> implements Serializable {
 
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	private Integer fetches = 0;
+//	private Integer fetches = 0;
 	private LocalDateTime created;
 	private LocalDateTime updated;
 
@@ -63,15 +63,15 @@ public abstract class AuthSession<T extends AuthUser> implements Serializable {
 
 	public abstract void setUser(T user);
 
-	public Integer getFetches() {
-		return fetches;
-	}
-
-	public void setFetches(Integer fetches) {
-		this.fetches = fetches;
-	}
-
-	public void addFetch() {
-		this.fetches ++;
-	}
+//	public Integer getFetches() {
+//		return fetches;
+//	}
+//
+//	public void setFetches(Integer fetches) {
+//		this.fetches = fetches;
+//	}
+//
+//	public void addFetch() {
+//		this.fetches ++;
+//	}
 }
