@@ -110,7 +110,7 @@ public class ImageHelper {
 			}
 			image = create(inputStream, imgName, urlConnection.getContentType(), url);
 		} catch (Exception ex) {
-			LOG.log(Level.SEVERE, ex.getMessage(), ex);
+			LOG.log(Level.WARNING, "caught X ception createFromUrl: " + ex.getMessage() + "; for url: " + url);
 			return null;
 		} finally {
 			if (urlConnection != null) {
