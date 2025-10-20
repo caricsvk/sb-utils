@@ -257,10 +257,11 @@ public abstract class EntityService<E, ID> {
 						predicates.add(cb.isTrue(path));
 					}
 				} else {
-					// TODO try if it works within postgres and with EclipseLink
+					// not sure if it works within postgres and with EclipseLink
 					// this works with hibernate/mysql
 					List<Predicate> orPredicates = entityFilter.getValues().stream().map(value ->
-							cb.equal(cb.lower(cb.concat(path, "")), value.toLowerCase())).collect(Collectors.toList());
+							createOptimizedEqualPredicate(cb, path, value)
+					).toList();
 					predicates.add(cb.or(orPredicates.toArray(new Predicate[orPredicates.size()])));
 
 				}
@@ -321,6 +322,53 @@ public abstract class EntityService<E, ID> {
 				break;
 		}
 		return predicates;
+	}
+
+	public Predicate createOptimizedEqualPredicate(CriteriaBuilder cb, Path path, String searchValue) {
+		try {
+			Class<?> javaType = path.getJavaType();
+			// --- 1. OPTIMIZED CHECK FOR NUMERIC TYPES ---
+			if (Number.class.isAssignableFrom(javaType) ||
+					javaType == long.class ||
+					javaType == int.class ||
+					javaType == double.class ||
+					javaType == float.class ||
+					javaType == short.class ||
+					javaType == byte.class)
+			{
+				Object typedValue = parseToNumber(javaType, searchValue);
+				return cb.equal(path, typedValue);
+			}
+		} catch (Throwable e) {
+			// suppressed ex
+		}
+		// --- 2. FALLBACK FOR STRING / CASE-INSENSITIVE COMPARISON --- Generates SQL like "LOWER(CONCAT(t0.NAME, '')) = 'john'"
+		// This is original, overhead-heavy, case-insensitive and type-coercing fallback
+		return cb.equal(cb.lower(cb.concat(path, "")), searchValue.toLowerCase());
+	}
+
+	private Object parseToNumber(Class<?> targetType, String value) {
+		if (targetType == Long.class || targetType == long.class) {
+			return Long.parseLong(value);
+		} else if (targetType == Integer.class || targetType == int.class) {
+			return Integer.parseInt(value);
+		} else if (targetType == Double.class || targetType == double.class) {
+			return Double.parseDouble(value);
+		} else if (targetType == Float.class || targetType == float.class) {
+			return Float.parseFloat(value);
+		} else if (targetType == Short.class || targetType == short.class) {
+			return Short.parseShort(value);
+		} else if (targetType == Byte.class || targetType == byte.class) {
+			return Byte.parseByte(value);
+		}
+		// Handle BigInteger/BigDecimal if necessary
+		else if (targetType == java.math.BigInteger.class) {
+			return new java.math.BigInteger(value);
+		} else if (targetType == java.math.BigDecimal.class) {
+			return new java.math.BigDecimal(value);
+		}
+		// Fallback in case a Number type wasn't explicitly handled (shouldn't happen with the initial check)
+		throw new IllegalArgumentException("Unsupported numeric type: " + targetType.getName());
 	}
 
 	public static class NumericValue {
