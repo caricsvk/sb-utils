@@ -20,6 +20,7 @@ public class CacheResource<T> {
 	private Function<CachedResponse<T>, Boolean> preProcess = cache -> true;
 	private Function<CachedResponse<T>, Object> process;
 	private Consumer<CachedResponse<T>> postProcess;
+	private Executor postProcessExecutor;
 
 	private CacheResource(CachedResponse<T> cache, Supplier<T> dataSupplier) {
 		this.cache = cache;
@@ -68,6 +69,11 @@ public class CacheResource<T> {
 	}
 
 	public CacheResource<T> postProcess(Consumer<CachedResponse<T>> postProcess) {
+		return postProcess(null, postProcess);
+	}
+
+	public CacheResource<T> postProcess(Executor executor, Consumer<CachedResponse<T>> postProcess) {
+		this.postProcessExecutor = executor;
 		this.postProcess = postProcess;
 		return this;
 	}
@@ -91,63 +97,53 @@ public class CacheResource<T> {
 	}
 
 	public void resolve(AsyncResponse asyncResponse, Supplier<Executor> executor, boolean useExecutorForCachedResponse) {
-		Runnable fullCycleCommand = () -> {
-			try {
-				synchronized (cache) { // fetch and process response only one in time
-					// not even sequentially when there are parallel requests (1)
-					if (preProcess.apply(cache) && !cache.isCurrent()) {
-						setupCache();
-					}
-					// return result even if it's null / error and wasn't resolved yet
-					if (asyncResponse == null) {
-						processResult(process);
-					} else if (!asyncResponse.isDone()) {
-						asyncResponse.resume(processResult(process));
-					}
-					// reset cache immediately if there is empty result / error to fetch it again soon
-					if (cache.getResult() == null) {
-						cache.clear();
-					} else if (postProcess != null) {
-						postProcess.accept(cache);
-					}
-				}
-			} finally {
-				cache.getSemaphore().release();
-			}
-		};
 
 		Runnable processAndRelease = () -> {
 			try {
+//				LOG.info("CacheResolve.processAndRelease, for " + key + " " + (asyncResponse == null));
+				// return result even if it's null / error and wasn't resolved yet
 				if (asyncResponse == null) {
 					processResult(process);
-				} else {
+				} else if (!asyncResponse.isDone()) {
 					asyncResponse.resume(processResult(process));
 				}
 				// reset cache immediately if there is empty result / error to fetch it again soon
 				if (cache.getResult() == null) {
 					cache.clear();
+				} else if (postProcess != null && this.postProcessExecutor != null) {
+					safeExecutorRun(() -> {
+						synchronized(cache) {postProcess.accept(cache);}
+					}, () -> this.postProcessExecutor);
 				} else if (postProcess != null) {
 					postProcess.accept(cache);
 				}
 			} finally {
 				cache.getSemaphore().release();
+//				LOG.info("lock.released processAndRelease, for " + key);
 			}
 		};
 
-		Consumer<Runnable> safeRunWithExecutor = (Runnable command) -> {
+		Runnable fullCycleCommand = () -> {
 			try {
-				executor.get().execute(command);
-			} catch (Exception ex) {
-				LOG.log(Level.SEVERE, "caught resolve.execute fullCycle exception: " + ex.getMessage(), ex);
+//				LOG.info("CacheResolve.fullCycleCommand, for " + key);
+				synchronized (cache) { // fetch and process response only one in time
+					// not even sequentially when there are parallel requests (1)
+					if (preProcess.apply(cache) && !cache.isCurrent()) {
+						setupCache();
+					}
+					processAndRelease.run();
+				}
+			} catch (Exception e) {
 				cache.getSemaphore().release();
+				LOG.log(Level.SEVERE,"fullCycleCommand caught exception, for " + key + " : " + e.getMessage(), e);
 			}
 		};
 
 		try { // allow only #permits from semaphore to go to exhaust executor threads
 //			LOG.info("acquiring lock, permits: " + cache.getSemaphore().availablePermits() + ", for: " + key);
 			cache.getSemaphore().acquire();
-			LOG.info("lock acquired, permits: " + cache.getSemaphore().availablePermits());
-		} catch (InterruptedException e) {
+//			LOG.info("lock acquired, permits: " + cache.getSemaphore().availablePermits() + ", for: " + key);
+		} catch (Exception e) {
 			LOG.log(Level.SEVERE, "caught cache.getSemaphore().acquire exception: " + e.getMessage(), e);
 			throw new RuntimeException(e);
 		}
@@ -155,18 +151,28 @@ public class CacheResource<T> {
 		// there was result successfully fetched within last N minutes, run only process
 		if (cache.isCurrent()) {
 			if (executor != null && useExecutorForCachedResponse) {
-				safeRunWithExecutor.accept(processAndRelease);
+				safeExecutorRun(processAndRelease, executor);
 			} else {
 				processAndRelease.run();
 			}
 		} else { // run full cycle - preprocess, supply, process & postprocess
 			if (executor != null) {
-				safeRunWithExecutor.accept(fullCycleCommand);
+				safeExecutorRun(fullCycleCommand, executor);
 			} else {
 				fullCycleCommand.run();
 			}
 		}
 
+	}
+
+	private void safeExecutorRun(Runnable command, Supplier<Executor> executor) {
+		try {
+//			LOG.info("safeExecutorRun, for " + key);
+			executor.get().execute(command);
+		} catch (Exception ex) {
+			LOG.log(Level.SEVERE, "caught resolve.execute fullCycle exception: " + ex.getMessage(), ex);
+			cache.getSemaphore().release();
+		}
 	}
 
 	private void setupCache() {

@@ -27,7 +27,6 @@ public class ResourceHelper {
 		}
 	}
 
-
 	public static <T> T timeCapture(String key, Supplier<T> supplier) {
 		long startTime = System.currentTimeMillis();
 		try {
@@ -48,10 +47,12 @@ public class ResourceHelper {
 		AtomicInteger count = new AtomicInteger(futures.size());
 		AtomicBoolean completed = new AtomicBoolean(false);
 		futures.forEach(future -> future.whenComplete((value, exception) -> {
-			LOG.info("completed " + (futures.size() - count.get()) + ", completing result " +
-					(!completed.get() && exception == null && filter.apply(value)));
+//			LOG.info("completed " + (futures.size() - count.get()) + ", completing result " +
+//					(!completed.get() && exception == null && filter.apply(value)));
 			if (!completed.get() && exception == null && filter.apply(value)) {
 				completed.set(result.complete(value));
+				// this should be parametrized before uncomment? a concrete future from the list might be used higher? (e.g. favicon)
+//				futures.forEach(notNeededFuture -> notNeededFuture.cancel(true));
 			}
 			if (count.decrementAndGet() == 0 && !completed.get()) {
 				result.complete(null);

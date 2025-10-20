@@ -25,9 +25,9 @@ public class SerializerHelper {
 	}
 
 	public static String listToString(List<String> values, String delimiter) {
-		return values == null ? null : values.stream().map(
-					value -> value != null && value.contains(listDelimiter) ?
-						value.replaceAll(listDelimiter, listDelimiterSubstitute) : value
-				).collect(Collectors.joining(delimiter));
+		return values == null ? null : values.stream()
+				.map(value -> value == null ? "" : value)
+				.map(value -> value.contains(listDelimiter) ? value.replaceAll(listDelimiter, listDelimiterSubstitute) : value)
+				.collect(Collectors.joining(delimiter));
 	}
 }
